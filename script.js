@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Parsing del CSV da Google Sheets
                 Papa.parse(data, {
                     header: true,
-                    delimiter: ';', // I mercatini usano il punto e virgola
+                    delimiter: ',', // I mercatini usano la virgola
                     skipEmptyLines: true,
                     complete: function(results) {
                         console.log('Parsing mercatini Google Sheets completato, righe trovate:', results.data.length);
@@ -151,13 +151,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                         
                         // Estrai comuni e categorie
-                        mercatini.forEach(mercatino => {
-                            if (mercatino.Comune) comuni.add(mercatino.Comune.trim());
+                        console.log('🔍 DEBUG: Prima riga mercatini completa:', results.data[0]);
+                        console.log('🔍 DEBUG: Chiavi disponibili:', Object.keys(results.data[0] || {}));
+                        
+                        mercatini.forEach((mercatino, index) => {
+                            console.log(`🔍 DEBUG: Mercatino ${index}:`, mercatino);
+                            
+                            if (mercatino.Comune) {
+                                console.log(`🔍 DEBUG: Comune trovato: "${mercatino.Comune}"`);
+                                comuni.add(mercatino.Comune.trim());
+                            }
+                            
                             if (mercatino["Settori merceologici"]) {
+                                console.log(`🔍 DEBUG: Settori trovati: "${mercatino["Settori merceologici"]}"`);
                                 const settori = mercatino["Settori merceologici"].split('/');
                                 settori.forEach(settore => {
                                     const settorePulito = settore.trim();
-                                    if (settorePulito) categorie.add(settorePulito);
+                                    if (settorePulito) {
+                                        console.log(`🔍 DEBUG: Categoria aggiunta: "${settorePulito}"`);
+                                        categorie.add(settorePulito);
+                                    }
                                 });
                             }
                         });
@@ -234,13 +247,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                         
                         // Estrai comuni e categorie
-                        fiere.forEach(fiera => {
-                            if (fiera.Comune) comuni.add(fiera.Comune.trim());
+                        console.log('🔍 DEBUG: Prima riga fiere completa:', results.data[0]);
+                        console.log('🔍 DEBUG: Chiavi disponibili fiere:', Object.keys(results.data[0] || {}));
+                        
+                        fiere.forEach((fiera, index) => {
+                            console.log(`🔍 DEBUG: Fiera ${index}:`, fiera);
+                            
+                            if (fiera.Comune) {
+                                console.log(`🔍 DEBUG: Comune fiera trovato: "${fiera.Comune}"`);
+                                comuni.add(fiera.Comune.trim());
+                            }
+                            
                             if (fiera["Settori merceologici"]) {
+                                console.log(`🔍 DEBUG: Settori fiere trovati: "${fiera["Settori merceologici"]}"`);
                                 const settori = fiera["Settori merceologici"].split('/');
                                 settori.forEach(settore => {
                                     const settorePulito = settore.trim();
-                                    if (settorePulito) categorie.add(settorePulito);
+                                    if (settorePulito) {
+                                        console.log(`🔍 DEBUG: Categoria fiera aggiunta: "${settorePulito}"`);
+                                        categorie.add(settorePulito);
+                                    }
                                 });
                             }
                         });
