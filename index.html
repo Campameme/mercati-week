@@ -59,13 +59,13 @@
             </div>
             
             <div class="action-buttons">
-                <button class="btn btn-primary" onclick="app.caricaDati()">
+                <button class="btn btn-primary" onclick="window.app ? app.caricaDati() : console.error('App non ancora caricata')">
                     🔄 Ricarica Dati
                 </button>
-                <button class="btn btn-success" onclick="app.mostraPreferiti()">
+                <button class="btn btn-success" onclick="window.app ? app.mostraPreferiti() : console.error('App non ancora caricata')">
                     ⭐ I Miei Preferiti
                 </button>
-                <button class="btn btn-info" onclick="app.mostraEventiVicini()">
+                <button class="btn btn-info" onclick="window.app ? app.mostraEventiVicini() : console.error('App non ancora caricata')">
                     📍 Eventi Più Vicini
                 </button>
             </div>

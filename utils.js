@@ -627,8 +627,8 @@ const DataLoader = {
             }
             
             const data = await response.text();
-            const timestamp = new Date().toLocaleTimeString();
-            Logger.info(`📊 Dati eventi ricevuti alle ${timestamp}: ${data.length} caratteri`);
+            const timeReceived = new Date().toLocaleTimeString();
+            Logger.info(`📊 Dati eventi ricevuti alle ${timeReceived}: ${data.length} caratteri`);
             
             // Mostra hash dei primi caratteri per verificare che i dati siano diversi
             const dataHash = data.substring(0, 100);
@@ -1302,6 +1302,14 @@ function initApp() {
     
     console.log('🚀 Avvio App.init()...');
     App.init();
+    
+    // Carica automaticamente i dati all'avvio
+    console.log('📡 Caricamento automatico dati...');
+    setTimeout(() => {
+        App.caricaDati().catch(error => {
+            console.error('❌ Errore caricamento automatico:', error);
+        });
+    }, 500);
 }
 
 // Avvia l'inizializzazione
