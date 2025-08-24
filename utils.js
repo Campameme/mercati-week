@@ -143,11 +143,17 @@ const Utils = {
         }
         
         console.log(`📅 Periodo: da ${dataPartenza.toLocaleDateString()} a ${dataLimite.toLocaleDateString()}`);
+        console.log(`📅 Tipo ricorrenza: "${giornoRicorrente}" per ${comune}`);
         
         // Analizza il giorno ricorrente e genera le date
         const dateGenerate = this.parseGiornoRicorrente(giornoRicorrente, dataPartenza, dataLimite);
         
-        console.log(`📊 Generate ${dateGenerate.length} date per ${comune}`);
+        console.log(`📊 Generate ${dateGenerate.length} date per ${comune}:`, 
+            dateGenerate.length > 5 ? 
+                [...dateGenerate.slice(0, 3).map(d => d.toLocaleDateString()), '...', ...dateGenerate.slice(-2).map(d => d.toLocaleDateString())] : 
+                dateGenerate.map(d => d.toLocaleDateString())
+        );
+        
         return dateGenerate.map(d => d.toISOString().split('T')[0]);
     },
     
@@ -166,7 +172,21 @@ const Utils = {
             return this.generaDateSettimanali(giornoSettimanale, dataInizio, dataFine);
         }
         
-        // Caso 2: Giorni mensili ordinali (es: "2^ domenica del mese", "3^ sabato del mese")
+        // Caso 2a: Giorni mensili ordinali multipli (es: "2^ e 4^ giovedì", "1^ e 3^ domenica")
+        const ordinaliMultipliMatch = giorno.match(/(\d+)[°^]\s*e\s*(\d+)[°^]\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)/);
+        if (ordinaliMultipliMatch) {
+            const ordinale1 = parseInt(ordinaliMultipliMatch[1]);
+            const ordinale2 = parseInt(ordinaliMultipliMatch[2]);
+            const giornoSettimana = ordinaliMultipliMatch[3];
+            const giornoIndice = giorni.indexOf(giornoSettimana);
+            console.log(`📅 ${ordinale1}° e ${ordinale2}° ${giornoSettimana} del mese`);
+            
+            const date1 = this.generaDateMensili(ordinale1, giornoIndice, dataInizio, dataFine);
+            const date2 = this.generaDateMensili(ordinale2, giornoIndice, dataInizio, dataFine);
+            return [...date1, ...date2].sort((a, b) => new Date(a) - new Date(b));
+        }
+
+        // Caso 2b: Giorni mensili ordinali semplici (es: "2^ domenica del mese", "3^ sabato del mese")
         const ordinaleMatch = giorno.match(/(\d+)[°^]\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)/);
         if (ordinaleMatch) {
             const ordinale = parseInt(ordinaleMatch[1]);
@@ -455,11 +475,11 @@ const CalendarManager = {
             eventClick: (info) => this.onEventClick(info.event),
             dateClick: (info) => this.onDayClick(info.dateStr),
             eventClassNames: (arg) => this.getEventClassNames(arg),
-            dayMaxEvents: false, // Mostra tutti gli eventi per ora
-            // moreLinkClick: this.onMoreLinkClick.bind(this),
-            // moreLinkText: function(num) {
-            //     return `+${num} altri`;
-            // },
+            dayMaxEvents: 4, // Massimo 4 eventi visibili per giorno
+            moreLinkClick: this.onMoreLinkClick.bind(this),
+            moreLinkText: function(num) {
+                return `+${num} altri`;
+            },
             eventTimeFormat: {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -1294,14 +1314,30 @@ const EventManager = {
         const giornoSettimana = dataObj.toLocaleDateString('it-IT', { weekday: 'long' });
         title.textContent = `Eventi di ${giornoSettimana} ${Utils.formattaData(data)}`;
         
-        const eventiGiorno = CalendarManager.getEvents().filter(evento => 
-            evento.start.toISOString().split('T')[0] === data
-        );
+        // Otteniamo gli eventi dal calendario FullCalendar
+        const eventiCalendario = CalendarManager.calendar ? CalendarManager.calendar.getEvents() : [];
+        const eventiGiorno = eventiCalendario.filter(evento => {
+            const eventoData = evento.start.toISOString().split('T')[0];
+            return eventoData === data;
+        });
+        
+        console.log(`🔍 DEBUG mostraEventiGiorno:`, {
+            data,
+            eventiCalendarioTotali: eventiCalendario.length,
+            eventiGiornoFiltrati: eventiGiorno.length,
+            eventiGiorno: eventiGiorno.map(e => ({ title: e.title, start: e.start.toISOString() }))
+        });
         
         if (eventiGiorno.length === 0) {
             body.innerHTML = '<p class="text-muted">Nessun evento per questo giorno</p>';
         } else {
-            let html = '';
+            // Aggiungiamo header con conteggio eventi
+            let html = `
+                <div class="alert alert-info mb-3">
+                    <strong>📊 Trovati ${eventiGiorno.length} eventi per questo giorno</strong>
+                </div>
+                <div class="events-container" style="max-height: 400px; overflow-y: auto;">
+            `;
             eventiGiorno.forEach((evento, index) => {
                 let dettagli = `📍 ${evento.extendedProps.comune}`;
                 
@@ -1338,16 +1374,10 @@ const EventManager = {
                     </div>
                 `;
             });
-            // Aggiungi header con conteggio e rendi scrollabile
-            const finalHtml = `
-                <div class="alert alert-info mb-3">
-                    <strong>${eventiGiorno.length}</strong> evento${eventiGiorno.length > 1 ? 'i' : ''} trovato${eventiGiorno.length > 1 ? 'i' : ''}
-                </div>
-                <div style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
-                    ${html}
-                </div>
-            `;
-            body.innerHTML = finalHtml;
+            
+            // Chiudi il container scrollabile
+            html += '</div>';
+            body.innerHTML = html;
         }
         
         modal.show();
