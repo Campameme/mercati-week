@@ -3,157 +3,1137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendario Eventi - Mercatini e Fiere</title>
-    <meta name="description" content="Calendario interattivo per mercatini e fiere della Liguria con integrazione Google Sheets">
-    <meta name="keywords" content="mercatini, fiere, liguria, calendario, eventi">
-    <meta name="author" content="Emanuele Campanini">
+    <title>📅 Calendario Eventi - Mercatini e Fiere</title>
     
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FullCalendar CSS -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="style.css" rel="stylesheet">
     
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 0;
+        }
+        
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin: 0 auto;
+            max-width: 1400px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .status-bar {
+            background: var(--light-color);
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+        
+        .status-online {
+            color: var(--success-color);
+        }
+        
+        .status-offline {
+            color: var(--danger-color);
+        }
+        
+        .controls-section {
+            background: var(--light-color);
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .filters-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 0.9rem;
+        }
+        
+        .filter-select {
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            transition: border-color 0.3s ease;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning-color);
+            color: var(--dark-color);
+        }
+        
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-info {
+            background: var(--info-color);
+            color: white;
+        }
+        
+        .calendar-section {
+            padding: 30px;
+            background: white;
+        }
+        
+        #calendar {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 2px solid var(--light-color);
+        }
+        
+        .fc-event {
+            border-radius: 8px !important;
+            border: none !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .fc-event:hover {
+            transform: scale(1.05) !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25) !important;
+        }
+        
+        .fc-event-mercatino {
+            background: var(--success-color) !important;
+            border-color: var(--success-color) !important;
+        }
+        
+        .fc-event-fiera {
+            background: var(--warning-color) !important;
+            border-color: var(--warning-color) !important;
+            color: var(--dark-color) !important;
+        }
+        
+        .sidebar {
+            background: var(--light-color);
+            padding: 20px;
+            border-left: 1px solid #dee2e6;
+        }
+        
+        .sidebar-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #dee2e6;
+        }
+        
+        .sidebar-section h4 {
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 8px;
+        }
+        
+        .event-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .event-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+        }
+        
+        .event-title {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+        
+        .event-details {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        
+        .event-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+            color: white;
+            border-radius: 15px 15px 0 0;
+            border: none;
+        }
+        
+        .modal-title {
+            font-weight: 600;
+        }
+        
+        .modal-body {
+            padding: 25px;
+        }
+        
+        .event-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .event-detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .event-detail-label {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .event-detail-value {
+            color: #6c757d;
+            text-align: right;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .responsive-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 0;
+        }
+        
+        @media (max-width: 1200px) {
+            .responsive-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                border-left: none;
+                border-top: 1px solid #dee2e6;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .filters-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="bg-primary text-white py-3">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="h3 mb-0">📅 Calendario Eventi - Mercatini e Fiere</h1>
-                    <p class="mb-0 small">Scopri i mercatini e le fiere più vicini a te</p>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📅 Calendario Eventi - Mercatini e Fiere</h1>
+            <p>Scopri i mercatini e le fiere più vicini a te</p>
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-online">🟢 Online</span>
+            </div>
+            <div id="loadingStatus">Caricamento in corso...</div>
+        </div>
+        
+        <!-- Controls Section -->
+        <div class="controls-section">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="comuneFilter">🏘️ Comune</label>
+                    <select id="comuneFilter" class="filter-select">
+                        <option value="">Tutti i comuni</option>
+                    </select>
                 </div>
-                <div class="col-md-4 text-end">
-                    <div id="statusIndicator" class="d-inline-block">
-                        <span class="badge bg-success">🟢 Online</span>
-                    </div>
+                
+                <div class="filter-group">
+                    <label for="categoriaFilter">🏷️ Categoria</label>
+                    <select id="categoriaFilter" class="filter-select">
+                        <option value="">Tutte le categorie</option>
+                    </select>
                 </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container my-4">
-        <!-- Loading Status -->
-        <div id="statusCaricamento" class="alert alert-info text-center d-none">
-            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-            <span id="statusTesto">Caricamento in corso...</span>
-        </div>
-
-        <!-- Filters Row -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <label for="filtroComune" class="form-label">🏘️ Comune</label>
-                <select id="filtroComune" class="form-select">
-                    <option value="">Tutti i comuni</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label for="filtroCategoria" class="form-label">🏷️ Categoria</label>
-                <select id="filtroCategoria" class="form-select">
-                    <option value="">Tutte le categorie</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label for="filtroTipo" class="form-label">📋 Tipo Evento</label>
-                <select id="filtroTipo" class="form-select">
-                    <option value="">Tutti gli eventi</option>
-                    <option value="mercatino">Mercatini</option>
-                    <option value="fiera">Fiere</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <button id="btnRicarica" class="btn btn-outline-primary w-100 mt-4">
-                    🔄 Ricarica Dati
-                </button>
-            </div>
-        </div>
-
-        <!-- Calendar Container -->
-        <div class="row">
-            <div class="col-lg-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">📅 Calendario Eventi</h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="calendar"></div>
-                    </div>
+                
+                <div class="filter-group">
+                    <label for="tipoFilter">📋 Tipo Evento</label>
+                    <select id="tipoFilter" class="filter-select">
+                        <option value="">Tutti gli eventi</option>
+                        <option value="mercatino">Mercatini</option>
+                        <option value="fiera">Fiere</option>
+                    </select>
                 </div>
             </div>
             
-            <div class="col-lg-4">
-                <!-- Favorites Section -->
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">⭐ I Miei Preferiti</h6>
-                    </div>
-                    <div class="card-body">
-                        <div id="preferiti">
-                            <p class="text-muted small">Nessun evento preferito salvato</p>
-                        </div>
-                    </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="caricaDati()">
+                    🔄 Ricarica Dati
+                </button>
+                <button class="btn btn-success" onclick="mostraPreferiti()">
+                    ⭐ I Miei Preferiti
+                </button>
+                <button class="btn btn-info" onclick="mostraEventiVicini()">
+                    📍 Eventi Più Vicini
+                </button>
+            </div>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Caricamento...</span>
+            </div>
+            <p class="mt-3">Caricamento dati in corso...</p>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="responsive-grid">
+            <!-- Calendar Section -->
+            <div class="calendar-section">
+                <h3>📅 Calendario Eventi</h3>
+                <div id="calendar"></div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-section">
+                    <h4>⭐ I Miei Preferiti</h4>
+                    <div id="preferitiList">Nessun evento preferito salvato</div>
                 </div>
-
-                <!-- Nearest Events -->
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">📍 Eventi Più Vicini</h6>
-                    </div>
-                    <div class="card-body">
-                        <div id="eventiVicini">
-                            <p class="text-muted small">Caricamento eventi...</p>
-                        </div>
-                    </div>
+                
+                <div class="sidebar-section">
+                    <h4>📍 Eventi Più Vicini</h4>
+                    <div id="eventiVicini">Caricamento eventi...</div>
                 </div>
             </div>
         </div>
-    </main>
-
+    </div>
+    
     <!-- Event Details Modal -->
-    <div class="modal fade" id="eventoModal" tabindex="-1" aria-labelledby="eventoModalLabel" aria-hidden="true">
+    <div class="modal fade" id="eventModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="eventoModalLabel">📅 Dettagli Evento</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="eventModalTitle">📅 Dettagli Evento</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="eventoModalBody">
-                    <!-- Content will be populated dynamically -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                <div class="modal-body" id="eventModalBody">
+                    <!-- Event details will be inserted here -->
                 </div>
             </div>
         </div>
     </div>
-
+    
     <!-- Daily Events Modal -->
-    <div class="modal fade" id="giornoModal" tabindex="-1" aria-labelledby="giornoModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
+    <div class="modal fade" id="dailyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="giornoModalLabel">📅 Eventi del Giorno</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="dailyModalTitle">📅 Eventi del Giorno</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="giornoModalBody">
-                    <!-- Content will be populated dynamically -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                <div class="modal-body" id="dailyModalBody">
+                    <!-- Daily events will be inserted here -->
                 </div>
             </div>
         </div>
     </div>
-
+    
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-    <script src="script.js"></script>
+    
+    <script>
+        // Variabili globali
+        let calendar;
+        let mercatini = [];
+        let fiere = [];
+        let preferiti = new Set();
+        
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inizializzazione applicazione...');
+            
+            // Inizializza calendario
+            inizializzaCalendario();
+            
+            // Carica preferiti salvati
+            caricaPreferiti();
+            
+            // Carica dati iniziali
+            caricaDati();
+            
+            // Controlla stato online/offline
+            controllaStatoOnline();
+            
+            console.log('✅ Applicazione inizializzata');
+        });
+        
+        // Inizializza FullCalendar
+        function inizializzaCalendario() {
+            console.log('🔄 Inizializzazione calendario...');
+            
+            const calendarEl = document.getElementById('calendar');
+            
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'it',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,dayGridWeek,listWeek'
+                },
+                buttonText: {
+                    today: 'Oggi',
+                    month: 'Mese',
+                    week: 'Settimana',
+                    list: 'Lista'
+                },
+                height: 'auto',
+                eventClick: function(info) {
+                    mostraDettagliEvento(info.event);
+                },
+                dayClick: function(info) {
+                    mostraEventiGiorno(info.dateStr);
+                },
+                eventClassNames: function(arg) {
+                    const classNames = ['fade-in'];
+                    if (arg.event.extendedProps.tipo === 'mercatino') {
+                        classNames.push('fc-event-mercatino');
+                    } else if (arg.event.extendedProps.tipo === 'fiera') {
+                        classNames.push('fc-event-fiera');
+                    }
+                    return classNames;
+                }
+            });
+            
+            calendar.render();
+            console.log('✅ Calendario inizializzato');
+        }
+        
+        // Carica dati da Google Sheets
+        async function caricaDati() {
+            console.log('🚀 Avvio caricamento dati...');
+            
+            mostraLoading(true);
+            aggiornaStatus('Caricamento dati in corso...');
+            
+            try {
+                // Carica entrambi i dataset in parallelo
+                await Promise.all([
+                    caricaMercatini(),
+                    caricaFiere()
+                ]);
+                
+                console.log('✅ Tutti i dati caricati');
+                aggiornaStatus('Dati caricati con successo');
+                
+                // Aggiorna UI
+                aggiornaFiltri();
+                aggiornaCalendario();
+                aggiornaEventiVicini();
+                
+            } catch (error) {
+                console.error('❌ Errore durante il caricamento dati:', error);
+                aggiornaStatus('Errore nel caricamento dati', 'error');
+            } finally {
+                mostraLoading(false);
+            }
+        }
+        
+        // Carica mercatini
+        async function caricaMercatini() {
+            console.log('🛒 Caricamento mercatini...');
+            
+            try {
+                const url = 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/gviz/tq?tqx=out:csv&sheet=Foglio1';
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.text();
+                console.log(`📊 Dati mercatini ricevuti: ${data.length} caratteri`);
+                
+                return new Promise((resolve, reject) => {
+                    Papa.parse(data, {
+                        header: true,
+                        delimiter: ',',
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            console.log(`✅ Parsing mercatini completato: ${results.data.length} righe`);
+                            
+                            // Filtra solo i mercatini
+                            mercatini = results.data.filter(item => 
+                                item.Evento && 
+                                item.Evento.toLowerCase().includes('mercatino') &&
+                                item.Comune && 
+                                item.Comune.trim() &&
+                                item.Giorno && 
+                                item.Giorno.trim()
+                            );
+                            
+                            console.log(`🎯 Mercatini validi: ${mercatini.length}`);
+                            resolve();
+                        },
+                        error: (error) => {
+                            console.error(`❌ Errore parsing mercatini: ${error.message}`);
+                            reject(error);
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                console.error(`❌ Errore caricamento mercatini: ${error.message}`);
+                throw error;
+            }
+        }
+        
+        // Carica fiere
+        async function caricaFiere() {
+            console.log('🎪 Caricamento fiere...');
+            
+            try {
+                const url = 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/gviz/tq?tqx=out:csv&sheet=Foglio1';
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.text();
+                console.log(`📊 Dati fiere ricevuti: ${data.length} caratteri`);
+                
+                return new Promise((resolve, reject) => {
+                    Papa.parse(data, {
+                        header: true,
+                        delimiter: ',',
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            console.log(`✅ Parsing fiere completato: ${results.data.length} righe`);
+                            
+                            // Filtra solo le fiere/eventi (tutto tranne mercatini)
+                            fiere = results.data.filter(item => 
+                                item.Evento && 
+                                !item.Evento.toLowerCase().includes('mercatino') &&
+                                item.Comune && 
+                                item.Comune.trim() &&
+                                (item['Data inizio'] || item.Mese) // Deve avere una data
+                            );
+                            
+                            console.log(`🎯 Fiere valide: ${fiere.length}`);
+                            resolve();
+                        },
+                        error: (error) => {
+                            console.error(`❌ Errore parsing fiere: ${error.message}`);
+                            reject(error);
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                console.error(`❌ Errore caricamento fiere: ${error.message}`);
+                throw error;
+            }
+        }
+        
+        // Aggiorna calendario con tutti gli eventi
+        function aggiornaCalendario() {
+            if (!calendar) {
+                console.error('❌ Calendario non inizializzato');
+                return;
+            }
+            
+            console.log('🔄 Aggiornamento calendario...');
+            
+            // Rimuovi eventi esistenti
+            calendar.removeAllEvents();
+            console.log('🗑️ Eventi esistenti rimossi');
+            
+            let eventiAggiunti = 0;
+            const oggi = new Date();
+            const anno = oggi.getFullYear();
+            
+            // Aggiungi mercatini
+            console.log('🛒 Aggiunta mercatini al calendario...');
+            mercatini.forEach((mercatino, index) => {
+                const date = generaDateMercatino(mercatino.Giorno, anno, 4);
+                
+                if (date && date.length > 0) {
+                    date.forEach(dataSingola => {
+                        try {
+                            const evento = {
+                                title: `🛒 ${mercatino.Comune}`,
+                                start: dataSingola,
+                                end: dataSingola,
+                                backgroundColor: '#28a745',
+                                borderColor: '#28a745',
+                                extendedProps: {
+                                    tipo: 'mercatino',
+                                    comune: mercatino.Comune,
+                                    giorno: mercatino.Giorno,
+                                    orario: mercatino.Orario || 'N/A',
+                                    luogo: mercatino.Luogo || 'N/A',
+                                    tipologia: mercatino.Tipologia || 'N/A',
+                                    organizzatore: mercatino.Organizzatore || 'N/A'
+                                }
+                            };
+                            
+                            calendar.addEvent(evento);
+                            eventiAggiunti++;
+                            
+                        } catch (error) {
+                            console.error(`❌ Errore aggiunta mercatino: ${error.message}`);
+                        }
+                    });
+                }
+            });
+            
+            console.log(`✅ Mercatini aggiunti: ${eventiAggiunti} eventi totali`);
+            
+            // Aggiungi fiere
+            console.log('🎪 Aggiunta fiere al calendario...');
+            let fiereAggiunte = 0;
+            
+            fiere.forEach((fiera, index) => {
+                let date = null;
+                
+                // Prova prima con Data inizio
+                if (fiera['Data inizio']) {
+                    date = generaDataFiera(fiera['Data inizio'], anno);
+                }
+                
+                // Se non funziona, prova con Mese
+                if (!date && fiera.Mese) {
+                    date = generaDataFiera(fiera.Mese, anno);
+                }
+                
+                if (date) {
+                    try {
+                        const evento = {
+                            title: `🎪 ${fiera.Evento}`,
+                            start: date,
+                            end: date,
+                            backgroundColor: '#ffc107',
+                            borderColor: '#ffc107',
+                            textColor: '#000',
+                            extendedProps: {
+                                tipo: 'fiera',
+                                comune: fiera.Comune,
+                                evento: fiera.Evento,
+                                tipologia: fiera.Tipologia || 'N/A',
+                                mese: fiera.Mese || 'N/A',
+                                luogo: fiera.Luogo || 'N/A',
+                                orario: fiera.Orario || 'N/A',
+                                organizzatore: fiera.Organizzatore || 'N/A'
+                            }
+                        };
+                        
+                        calendar.render();
+                        calendar.addEvent(evento);
+                        fiereAggiunte++;
+                        
+                    } catch (error) {
+                        console.error(`❌ Errore aggiunta fiera: ${error.message}`);
+                    }
+                }
+            });
+            
+            console.log(`✅ Fiere aggiunte: ${fiereAggiunte} eventi totali`);
+            console.log(`📊 Totale eventi nel calendario: ${calendar.getEvents().length}`);
+            
+            // Forza refresh finale
+            calendar.render();
+        }
+        
+        // Genera date per mercatini ricorrenti
+        function generaDateMercatino(giorno, anno, mesi) {
+            if (!giorno) return null;
+            
+            const date = [];
+            const dataInizio = new Date(anno, 0, 1);
+            let data = new Date(dataInizio);
+            
+            // Determina il giorno della settimana
+            let giornoSettimana = -1;
+            if (giorno.includes('domenica')) giornoSettimana = 0;
+            else if (giorno.includes('lunedì') || giorno.includes('lunedi') || giorno.includes('Lunedì') || giorno.includes('Lunedi')) giornoSettimana = 1;
+            else if (giorno.includes('martedì') || giorno.includes('martedi') || giorno.includes('Martedì') || giorno.includes('Martedi')) giornoSettimana = 2;
+            else if (giorno.includes('mercoledì') || giorno.includes('mercoledi') || giorno.includes('Mercoledì') || giorno.includes('Mercoledi')) giornoSettimana = 3;
+            else if (giorno.includes('giovedì') || giorno.includes('giovedi') || giorno.includes('Giovedì') || giorno.includes('Giovedi')) giornoSettimana = 4;
+            else if (giorno.includes('venerdì') || giorno.includes('venerdi') || giorno.includes('Venerdì') || giorno.includes('Venerdi')) giornoSettimana = 5;
+            else if (giorno.includes('sabato') || giorno.includes('Sabato')) giornoSettimana = 6;
+            
+            if (giornoSettimana === -1) {
+                console.log(`❌ Giorno non riconosciuto: ${giorno}`);
+                return null;
+            }
+            
+            // Trova il primo giorno della settimana
+            while (data.getDay() !== giornoSettimana) {
+                data.setDate(data.getDate() + 1);
+            }
+            
+            // Genera date per i mesi specificati
+            const dataFine = new Date(anno, mesi, 0);
+            while (data <= dataFine) {
+                date.push(data.toISOString().split('T')[0]);
+                data.setDate(data.getDate() + 7);
+            }
+            
+            return date;
+        }
+        
+        // Genera data per fiere
+        function generaDataFiera(dataInizio, anno) {
+            if (!dataInizio) return null;
+            
+            const primaData = dataInizio.split('\n')[0].trim();
+            
+            // Gestisci formato DD/MM
+            if (primaData.includes('/')) {
+                const [giorno, mese] = primaData.split('/');
+                const data = new Date(anno, parseInt(mese) - 1, parseInt(giorno));
+                
+                if (data >= new Date()) {
+                    return data.toISOString().split('T')[0];
+                }
+            }
+            
+            // Gestisci formato solo mese
+            const mesi = {
+                'gennaio': 0, 'febbraio': 1, 'marzo': 2, 'aprile': 3, 'maggio': 4, 'giugno': 5,
+                'luglio': 6, 'agosto': 7, 'settembre': 8, 'ottobre': 9, 'novembre': 10, 'dicembre': 11
+            };
+            
+            for (let [meseNome, meseNum] of Object.entries(mesi)) {
+                if (primaData.toLowerCase().includes(meseNome)) {
+                    const data = new Date(anno, meseNum, 1);
+                    if (data >= new Date()) {
+                        return data.toISOString().split('T')[0];
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        // Aggiorna filtri
+        function aggiornaFiltri() {
+            // Comuni
+            const comuni = [...new Set([...mercatini.map(m => m.Comune), ...fiere.map(f => f.Comune)])];
+            const comuneSelect = document.getElementById('comuneFilter');
+            comuneSelect.innerHTML = '<option value="">Tutti i comuni</option>';
+            comuni.forEach(comune => {
+                const option = document.createElement('option');
+                option.value = comune;
+                option.textContent = comune;
+                comuneSelect.appendChild(option);
+            });
+            
+            // Categorie
+            const categorie = [...new Set([...mercatini.map(m => m.Tipologia), ...fiere.map(f => f.Tipologia)])];
+            const categoriaSelect = document.getElementById('categoriaFilter');
+            categoriaSelect.innerHTML = '<option value="">Tutte le categorie</option>';
+            categorie.forEach(categoria => {
+                if (categoria) {
+                    const option = document.createElement('option');
+                    option.value = categoria;
+                    option.textContent = categoria;
+                    categoriaSelect.appendChild(option);
+                }
+            });
+            
+            // Aggiungi event listeners per i filtri
+            comuneSelect.addEventListener('change', applicaFiltri);
+            categoriaSelect.addEventListener('change', applicaFiltri);
+            document.getElementById('tipoFilter').addEventListener('change', applicaFiltri);
+        }
+        
+        // Applica filtri
+        function applicaFiltri() {
+            const comune = document.getElementById('comuneFilter').value;
+            const categoria = document.getElementById('categoriaFilter').value;
+            const tipo = document.getElementById('tipoFilter').value;
+            
+            const eventi = calendar.getEvents();
+            
+            eventi.forEach(evento => {
+                let mostra = true;
+                
+                if (comune && evento.extendedProps.comune !== comune) {
+                    mostra = false;
+                }
+                
+                if (categoria && evento.extendedProps.tipologia !== categoria) {
+                    mostra = false;
+                }
+                
+                if (tipo && evento.extendedProps.tipo !== tipo) {
+                    mostra = false;
+                }
+                
+                if (mostra) {
+                    evento.setProp('display', 'auto');
+                } else {
+                    evento.setProp('display', 'none');
+                }
+            });
+        }
+        
+        // Mostra dettagli evento
+        function mostraDettagliEvento(evento) {
+            const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+            const title = document.getElementById('eventModalTitle');
+            const body = document.getElementById('eventModalBody');
+            
+            title.textContent = evento.title;
+            
+            let html = `
+                <div class="event-detail-row">
+                    <span class="event-detail-label">📅 Data:</span>
+                    <span class="event-detail-value">${evento.start.toLocaleDateString('it-IT')}</span>
+                </div>
+                <div class="event-detail-row">
+                    <span class="event-detail-label">🏘️ Comune:</span>
+                    <span class="event-detail-value">${evento.extendedProps.comune}</span>
+                </div>
+                <div class="event-detail-row">
+                    <span class="event-detail-label">🏷️ Tipologia:</span>
+                    <span class="event-detail-value">${evento.extendedProps.tipologia}</span>
+                </div>
+                <div class="event-detail-row">
+                    <span class="event-detail-label">📍 Luogo:</span>
+                    <span class="event-detail-value">${evento.extendedProps.luogo}</span>
+                </div>
+                <div class="event-detail-row">
+                    <span class="event-detail-label">🕐 Orario:</span>
+                    <span class="event-detail-value">${evento.extendedProps.orario}</span>
+                </div>
+                <div class="event-detail-row">
+                    <span class="event-detail-label">👥 Organizzatore:</span>
+                    <span class="event-detail-value">${evento.extendedProps.organizzatore}</span>
+                </div>
+            `;
+            
+            body.innerHTML = html;
+            modal.show();
+        }
+        
+        // Mostra eventi del giorno
+        function mostraEventiGiorno(data) {
+            const modal = new bootstrap.Modal(document.getElementById('dailyModal'));
+            const title = document.getElementById('dailyModalTitle');
+            const body = document.getElementById('dailyModalBody');
+            
+            title.textContent = `Eventi del ${new Date(data).toLocaleDateString('it-IT')}`;
+            
+            const eventiGiorno = calendar.getEvents().filter(evento => 
+                evento.start.toISOString().split('T')[0] === data
+            );
+            
+            if (eventiGiorno.length === 0) {
+                body.innerHTML = '<p class="text-muted">Nessun evento per questo giorno</p>';
+            } else {
+                let html = '';
+                eventiGiorno.forEach(evento => {
+                    html += `
+                        <div class="event-item">
+                            <div class="event-title">${evento.title}</div>
+                            <div class="event-details">
+                                📍 ${evento.extendedProps.comune} | 
+                                🏷️ ${evento.extendedProps.tipologia} | 
+                                🕐 ${evento.extendedProps.orario}
+                            </div>
+                            <div class="event-actions">
+                                <button class="btn btn-sm btn-primary" onclick="mostraDettagliEvento(${JSON.stringify(evento)})">
+                                    📋 Dettagli
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="togglePreferito('${evento.id}')">
+                                    ${preferiti.has(evento.id) ? '💔 Rimuovi' : '❤️ Aggiungi'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                body.innerHTML = html;
+            }
+            
+            modal.show();
+        }
+        
+        // Gestione preferiti
+        function togglePreferito(eventoId) {
+            if (preferiti.has(eventoId)) {
+                preferiti.delete(eventoId);
+            } else {
+                preferiti.add(eventoId);
+            }
+            
+            salvaPreferiti();
+            aggiornaListaPreferiti();
+        }
+        
+        function salvaPreferiti() {
+            localStorage.setItem('preferiti', JSON.stringify([...preferiti]));
+        }
+        
+        function caricaPreferiti() {
+            const salvati = localStorage.getItem('preferiti');
+            if (salvati) {
+                preferiti = new Set(JSON.parse(salvati));
+            }
+        }
+        
+        function aggiornaListaPreferiti() {
+            const lista = document.getElementById('preferitiList');
+            const eventi = calendar.getEvents().filter(evento => preferiti.has(evento.id));
+            
+            if (eventi.length === 0) {
+                lista.innerHTML = '<p class="text-muted">Nessun evento preferito salvato</p>';
+                return;
+            }
+            
+            let html = '';
+            eventi.forEach(evento => {
+                html += `
+                    <div class="event-item">
+                        <div class="event-title">${evento.title}</div>
+                        <div class="event-details">
+                            📅 ${evento.start.toLocaleDateString('it-IT')} | 
+                            📍 ${evento.extendedProps.comune}
+                        </div>
+                        <div class="event-actions">
+                            <button class="btn btn-sm btn-primary" onclick="mostraDettagliEvento(${JSON.stringify(evento)})">
+                                📋 Dettagli
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="togglePreferito('${evento.id}')">
+                                💔 Rimuovi
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            lista.innerHTML = html;
+        }
+        
+        function mostraPreferiti() {
+            aggiornaListaPreferiti();
+        }
+        
+        function aggiornaEventiVicini() {
+            const container = document.getElementById('eventiVicini');
+            const eventi = calendar.getEvents().filter(evento => 
+                evento.start >= new Date()
+            ).slice(0, 5);
+            
+            if (eventi.length === 0) {
+                container.innerHTML = '<p class="text-muted">Nessun evento futuro trovato</p>';
+                return;
+            }
+            
+            let html = '';
+            eventi.forEach(evento => {
+                html += `
+                    <div class="event-item">
+                        <div class="event-title">${evento.title}</div>
+                        <div class="event-details">
+                            📅 ${evento.start.toLocaleDateString('it-IT')} | 
+                            📍 ${evento.extendedProps.comune}
+                        </div>
+                        <div class="event-actions">
+                            <button class="btn btn-sm btn-primary" onclick="mostraDettagliEvento(${JSON.stringify(evento)})">
+                                📋 Dettagli
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="togglePreferito('${evento.id}')">
+                                ${preferiti.has(evento.id) ? '💔 Rimuovi' : '❤️ Aggiungi'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Utility functions
+        function mostraLoading(mostra) {
+            const spinner = document.getElementById('loadingSpinner');
+            spinner.style.display = mostra ? 'block' : 'none';
+        }
+        
+        function aggiornaStatus(messaggio, tipo = 'info') {
+            const status = document.getElementById('loadingStatus');
+            status.textContent = messaggio;
+            status.className = tipo === 'error' ? 'text-danger' : 'text-success';
+        }
+        
+        function controllaStatoOnline() {
+            const indicator = document.getElementById('statusIndicator');
+            
+            function aggiornaStato() {
+                if (navigator.onLine) {
+                    indicator.innerHTML = '<span class="status-online">🟢 Online</span>';
+                } else {
+                    indicator.innerHTML = '<span class="status-offline">🔴 Offline</span>';
+                }
+            }
+            
+            aggiornaStato();
+            window.addEventListener('online', aggiornaStato);
+            window.addEventListener('offline', aggiornaStato);
+        }
+    </script>
 </body>
 </html>
