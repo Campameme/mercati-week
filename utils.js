@@ -614,12 +614,7 @@ const DataLoader = {
             
             Logger.info(`📡 Richiesta dati: ${urlConCache}`);
             const response = await fetch(urlConCache, {
-                cache: 'no-cache',
-                headers: {
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
+                cache: 'no-cache'
             });
             
             if (!response.ok) {
