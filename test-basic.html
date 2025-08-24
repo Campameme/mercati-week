@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST BASIC - Solo FullCalendar</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .controls { margin-bottom: 20px; text-align: center; }
+        .btn { padding: 12px 24px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn:hover { opacity: 0.8; }
+        #calendar { min-height: 400px; background: white; border-radius: 8px; padding: 20px; border: 2px solid #007bff; margin: 20px 0; }
+        .status { padding: 15px; margin: 15px 0; border-radius: 6px; font-weight: bold; text-align: center; }
+        .status.success { background: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 2px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 2px solid #bee5eb; }
+        .log { background: #000; color: #00ff00; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; }
+        .info { background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 TEST BASIC - Solo FullCalendar</h1>
+            <p>Versione che testa solo FullCalendar senza altre dipendenze</p>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" onclick="testCalendario()">🧪 Test Calendario</button>
+            <button class="btn btn-success" onclick="aggiungiEvento()">➕ Aggiungi Evento</button>
+            <button class="btn btn-danger" onclick="pulisci()">🗑️ Pulisci</button>
+        </div>
+        
+        <div id="status" class="status info">Pronto per i test</div>
+        
+        <div id="calendar"></div>
+        
+        <div class="info">
+            <h4>📊 Informazioni</h4>
+            <div id="info">Calendario non inizializzato</div>
+        </div>
+        
+        <div class="info">
+            <h4>📝 Log</h4>
+            <div id="log" class="log">Sistema inizializzato...</div>
+        </div>
+    </div>
+    
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    
+    <script>
+        let calendar;
+        
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.innerHTML += `[${timestamp}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        function updateInfo(message) {
+            document.getElementById('info').innerHTML = message;
+        }
+        
+        // Test inizializzazione
+        log('🚀 Script caricato');
+        
+        // Verifica FullCalendar
+        if (typeof FullCalendar === 'undefined') {
+            log('❌ FullCalendar non caricato');
+            updateStatus('ERRORE: FullCalendar non caricato', 'error');
+            updateInfo('FullCalendar non disponibile');
+        } else {
+            log('✅ FullCalendar caricato correttamente');
+            log(`📦 Versione: ${FullCalendar.version || 'N/A'}`);
+        }
+        
+        // Inizializza calendario
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 DOM caricato');
+            
+            try {
+                const calendarEl = document.getElementById('calendar');
+                log(`🔍 Elemento calendario trovato: ${calendarEl ? 'SI' : 'NO'}`);
+                
+                if (!calendarEl) {
+                    log('❌ Elemento calendario non trovato');
+                    updateStatus('ERRORE: Elemento calendario non trovato', 'error');
+                    return;
+                }
+                
+                log('🔄 Creazione calendario...');
+                
+                calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    locale: 'it',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth'
+                    },
+                    height: 'auto',
+                    events: [
+                        {
+                            title: '🎯 Evento Test',
+                            start: new Date(),
+                            backgroundColor: '#28a745'
+                        }
+                    ]
+                });
+                
+                log('✅ Calendario creato');
+                
+                log('🔄 Rendering calendario...');
+                calendar.render();
+                log('✅ Calendario renderizzato');
+                
+                updateStatus('Calendario inizializzato con successo', 'success');
+                updateInfo('Calendario funzionante con 1 evento di test');
+                
+                // Verifica eventi
+                const eventi = calendar.getEvents();
+                log(`📊 Eventi nel calendario: ${eventi.length}`);
+                
+            } catch (error) {
+                log(`❌ Errore inizializzazione: ${error.message}`);
+                updateStatus(`ERRORE: ${error.message}`, 'error');
+                updateInfo('Errore durante inizializzazione');
+            }
+        });
+        
+        function testCalendario() {
+            log('🧪 Test calendario...');
+            
+            if (!calendar) {
+                log('❌ Calendario non inizializzato');
+                updateStatus('ERRORE: Calendario non inizializzato', 'error');
+                return;
+            }
+            
+            try {
+                const eventi = calendar.getEvents();
+                log(`📊 Eventi attuali: ${eventi.length}`);
+                
+                if (eventi.length > 0) {
+                    eventi.forEach((evento, index) => {
+                        log(`📅 Evento ${index + 1}: ${evento.title} - ${evento.start.toISOString().split('T')[0]}`);
+                    });
+                }
+                
+                updateStatus(`Test completato: ${eventi.length} eventi trovati`, 'success');
+                updateInfo(`Eventi nel calendario: ${eventi.length}`);
+                
+            } catch (error) {
+                log(`❌ Errore test: ${error.message}`);
+                updateStatus(`ERRORE: ${error.message}`, 'error');
+            }
+        }
+        
+        function aggiungiEvento() {
+            log('➕ Aggiunta evento...');
+            
+            if (!calendar) {
+                log('❌ Calendario non inizializzato');
+                updateStatus('ERRORE: Calendario non inizializzato', 'error');
+                return;
+            }
+            
+            try {
+                const domani = new Date();
+                domani.setDate(domani.getDate() + 1);
+                
+                const evento = {
+                    title: '📅 Nuovo Evento',
+                    start: domani,
+                    backgroundColor: '#007bff',
+                    borderColor: '#007bff'
+                };
+                
+                calendar.addEvent(evento);
+                log('✅ Evento aggiunto');
+                
+                const eventi = calendar.getEvents();
+                log(`📊 Eventi totali: ${eventi.length}`);
+                
+                updateStatus('Evento aggiunto con successo', 'success');
+                updateInfo(`Eventi nel calendario: ${eventi.length}`);
+                
+            } catch (error) {
+                log(`❌ Errore aggiunta: ${error.message}`);
+                updateStatus(`ERRORE: ${error.message}`, 'error');
+            }
+        }
+        
+        function pulisci() {
+            log('🗑️ Pulizia...');
+            
+            if (!calendar) {
+                log('❌ Calendario non inizializzato');
+                updateStatus('ERRORE: Calendario non inizializzato', 'error');
+                return;
+            }
+            
+            try {
+                calendar.removeAllEvents();
+                log('✅ Eventi rimossi');
+                
+                const eventi = calendar.getEvents();
+                log(`📊 Eventi rimanenti: ${eventi.length}`);
+                
+                updateStatus('Eventi rimossi', 'success');
+                updateInfo(`Eventi nel calendario: ${eventi.length}`);
+                
+            } catch (error) {
+                log(`❌ Errore pulizia: ${error.message}`);
+                updateStatus(`ERRORE: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test automatico
+        setTimeout(() => {
+            log('⏰ Test automatico dopo 2 secondi...');
+            if (calendar) {
+                log('✅ Calendario disponibile per test automatico');
+            } else {
+                log('❌ Calendario non disponibile per test automatico');
+            }
+        }, 2000);
+        
+        log('🚀 Sistema test basic inizializzato');
+    </script>
+</body>
+</html>
