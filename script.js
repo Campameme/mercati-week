@@ -305,6 +305,9 @@ function aggiornaCalendario() {
     const oggi = new Date();
     const anno = oggi.getFullYear();
     
+    // Crea array di eventi
+    const eventiCalendario = [];
+    
     // Aggiungi mercatini (solo prossimi 4 mesi per performance)
     mercatini.slice(0, 15).forEach((mercatino, index) => {
         console.log(`🔍 Processando mercatino ${index + 1}: ${mercatino.Comune} - ${mercatino.Giorno}`);
@@ -325,11 +328,11 @@ function aggiornaCalendario() {
                         }
                     };
                     
-                    calendar.addEvent(evento);
+                    eventiCalendario.push(evento);
                     eventiAggiunti++;
-                    console.log(`➕ Aggiunto mercatino: ${mercatino.Comune} - ${dataSingola}`);
+                    console.log(`➕ Preparato mercatino: ${mercatino.Comune} - ${dataSingola}`);
                 } catch (error) {
-                    console.error(`❌ Errore aggiunta mercatino: ${error.message}`);
+                    console.error(`❌ Errore preparazione mercatino: ${error.message}`);
                 }
             });
         }
@@ -355,16 +358,41 @@ function aggiornaCalendario() {
                     }
                 };
                 
-                calendar.addEvent(evento);
+                eventiCalendario.push(evento);
                 eventiAggiunti++;
-                console.log(`➕ Aggiunta fiera: ${fiera.Denominazione || fiera.Comune} - ${date}`);
+                console.log(`➕ Preparata fiera: ${fiera.Denominazione || fiera.Comune} - ${date}`);
             } catch (error) {
-                console.error(`❌ Errore aggiunta fiera: ${error.message}`);
+                console.error(`❌ Errore preparazione fiera: ${error.message}`);
             }
         }
     });
     
-    console.log(`✅ Calendario aggiornato: ${eventiAggiunti} eventi totali aggiunti`);
+    console.log(`✅ Eventi preparati: ${eventiAggiunti} totali`);
+    console.log(`📊 Array eventi: ${eventiCalendario.length} elementi`);
+    
+    // Aggiungi tutti gli eventi in una volta sola
+    if (eventiCalendario.length > 0) {
+        try {
+            calendar.addEventSource(eventiCalendario);
+            console.log(`✅ Eventi aggiunti al calendario: ${eventiCalendario.length}`);
+        } catch (error) {
+            console.error(`❌ Errore aggiunta eventi: ${error.message}`);
+            
+            // Fallback: aggiungi uno per uno
+            console.log('🔄 Fallback: aggiunta eventi uno per uno...');
+            let aggiuntiFallback = 0;
+            eventiCalendario.forEach(evento => {
+                try {
+                    calendar.addEvent(evento);
+                    aggiuntiFallback++;
+                } catch (err) {
+                    console.error(`❌ Errore evento singolo: ${err.message}`);
+                }
+            });
+            console.log(`✅ Fallback completato: ${aggiuntiFallback} eventi aggiunti`);
+        }
+    }
+    
     console.log(`📊 Eventi nel calendario: ${calendar.getEvents().length}`);
     
     // Forza il refresh del calendario
