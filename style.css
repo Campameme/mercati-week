@@ -1,0 +1,78 @@
+/* Stile generale */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+h1 {
+    color: #3c4b64;
+}
+
+/* Stili per il calendario */
+#calendar {
+    min-height: 600px;
+}
+
+.fc-event {
+    cursor: pointer;
+}
+
+.fc-event-title {
+    font-weight: bold;
+}
+
+/* Stili per le card */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+    font-weight: bold;
+}
+
+/* Stili specifici per tipo di evento */
+.evento-mercatino {
+    background-color: #4caf50 !important;
+    border-color: #4caf50 !important;
+}
+
+.evento-fiera {
+    background-color: #2196f3 !important;
+    border-color: #2196f3 !important;
+}
+
+/* Stili per la lista di prossimi eventi */
+#prossimiEventi .list-group-item {
+    border-left: 5px solid #3c4b64;
+    margin-bottom: 5px;
+}
+
+#prossimiEventi .list-group-item.mercatino {
+    border-left-color: #4caf50;
+}
+
+#prossimiEventi .list-group-item.fiera {
+    border-left-color: #2196f3;
+}
+
+.evento-data {
+    font-weight: bold;
+    color: #6c757d;
+}
+
+.evento-nome {
+    font-weight: bold;
+}
+
+.evento-comune {
+    color: #6c757d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #calendar {
+        min-height: 400px;
+    }
+}

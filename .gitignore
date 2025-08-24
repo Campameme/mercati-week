@@ -1,0 +1,33 @@
+# File CSV locali (non più necessari con Google Sheets)
+*.csv
+
+# File temporanei Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# File di sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build e distribuzione
+dist/
+build/
+node_modules/
+
+# File di configurazione locale
+.env
+.env.local
+.env.production
