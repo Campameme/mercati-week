@@ -4,10 +4,7 @@
   "description": "Calendario interattivo per mercatini e fiere della Liguria con integrazione Google Sheets",
   "main": "index.html",
   "scripts": {
-    "start": "python3 -m http.server 8000",
-    "dev": "python3 -m http.server 8000",
-    "build": "echo 'Build completato - file pronti per il deploy'",
-    "deploy": "git add . && git commit -m 'Deploy automatico' && git push origin main"
+    "build": "echo 'Static site ready for deploy'"
   },
   "keywords": [
     "calendario",
@@ -27,11 +24,7 @@
     "url": "https://github.com/Campameme/mercati-week.git"
   },
   "homepage": "https://mercati-week.netlify.app",
-  "engines": {
-    "node": ">=14.0.0"
-  },
-  "dependencies": {},
-  "devDependencies": {},
+
   "browserslist": [
     "> 1%",
     "last 2 versions",
