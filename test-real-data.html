@@ -93,7 +93,7 @@
             if (mercatini.length > 0) {
                 html += `<h5>🛒 Mercatini (${mercatini.length})</h5>`;
                 mercatini.slice(0, 3).forEach((item, index) => {
-                    html += `<div class="data-item">${index + 1}. ${item.Comune} - ${item.Giorno}</div>`;
+                    html += `<div class="data-item">${index + 1}. ${item.Comune} - ${item.Giorno} - ${item.Tipologia || 'N/A'}</div>`;
                 });
                 if (mercatini.length > 3) {
                     html += `<div class="data-item">... e altri ${mercatini.length - 3} mercatini</div>`;
@@ -101,12 +101,12 @@
             }
             
             if (fiere.length > 0) {
-                html += `<h5>🎪 Fiere (${fiere.length})</h5>`;
+                html += `<h5>🎪 Fiere/Eventi (${fiere.length})</h5>`;
                 fiere.slice(0, 3).forEach((item, index) => {
-                    html += `<div class="data-item fiera">${index + 1}. ${item.Comune} - ${item['Data inizio'] || 'N/A'}</div>`;
+                    html += `<div class="data-item fiera">${index + 1}. ${item.Comune} - ${item.Evento} - ${item.Tipologia || 'N/A'}</div>`;
                 });
                 if (fiere.length > 3) {
-                    html += `<div class="data-item fiera">... e altri ${fiere.length - 3} fiere</div>`;
+                    html += `<div class="data-item fiera">... e altri ${fiere.length - 3} eventi</div>`;
                 }
             }
             
@@ -173,7 +173,7 @@
             updateStatus('Caricamento mercatini da Google Sheets...', 'info');
             
             try {
-                const url = 'https://docs.google.com/spreadsheets/d/1dGB3f47TrT_dVz5PsICci4JuoTWRBQAcPuXjDIYSE58/gviz/tq?tqx=out:csv&sheet=Foglio1';
+                const url = 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/gviz/tq?tqx=out:csv&sheet=Foglio1';
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -193,7 +193,16 @@
                         log(`🔍 Prima riga:`, results.data[0]);
                         log(`🔍 Colonne disponibili:`, Object.keys(results.data[0]));
                         
-                        mercatini = results.data.filter(item => item.Comune && item.Comune.trim());
+                        // Filtra solo i mercatini
+                        mercatini = results.data.filter(item => 
+                            item.Evento && 
+                            item.Evento.toLowerCase().includes('mercatino') &&
+                            item.Comune && 
+                            item.Comune.trim() &&
+                            item.Giorno && 
+                            item.Giorno.trim()
+                        );
+                        
                         log(`🎯 Mercatini validi: ${mercatini.length}`);
                         
                         if (mercatini.length > 0) {
@@ -331,7 +340,7 @@
             updateStatus('Caricamento fiere da Google Sheets...', 'info');
             
             try {
-                const url = 'https://docs.google.com/spreadsheets/d/1oa6pz7U79YyD8hey2lANS-x6nMCHnaKBC2LtEIsMyTQ/gviz/tq?tqx=out:csv&sheet=Foglio1';
+                const url = 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/gviz/tq?tqx=out:csv&sheet=Foglio1';
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -351,7 +360,15 @@
                         log(`🔍 Prima riga:`, results.data[0]);
                         log(`🔍 Colonne disponibili:`, Object.keys(results.data[0]));
                         
-                        fiere = results.data.filter(item => item.Comune && item.Comune.trim());
+                        // Filtra solo le fiere/eventi (tutto tranne mercatini)
+                        fiere = results.data.filter(item => 
+                            item.Evento && 
+                            !item.Evento.toLowerCase().includes('mercatino') &&
+                            item.Comune && 
+                            item.Comune.trim() &&
+                            (item['Data inizio'] || item.Mese) // Deve avere una data
+                        );
+                        
                         log(`🎯 Fiere valide: ${fiere.length}`);
                         
                         if (fiere.length > 0) {
@@ -389,16 +406,26 @@
             const oggi = new Date();
             const anno = oggi.getFullYear();
             
-            // Processa solo le prime 10 fiere per performance
-            fiere.slice(0, 10).forEach((fiera, index) => {
-                log(`🔍 Processando fiera ${index + 1}: ${fiera.Comune} - ${fiera['Data inizio']}`);
+            // Processa solo le prime 15 fiere per performance
+            fiere.slice(0, 15).forEach((fiera, index) => {
+                log(`🔍 Processando fiera ${index + 1}: ${fiera.Comune} - ${fiera.Evento} - ${fiera['Data inizio'] || fiera.Mese}`);
                 
-                const date = generaDataFiera(fiera['Data inizio'], anno);
+                let date = null;
+                
+                // Prova prima con Data inizio
+                if (fiera['Data inizio']) {
+                    date = generaDataFiera(fiera['Data inizio'], anno);
+                }
+                
+                // Se non funziona, prova con Mese
+                if (!date && fiera.Mese) {
+                    date = generaDataFiera(fiera.Mese, anno);
+                }
                 
                 if (date) {
                     try {
                         const evento = {
-                            title: `🎪 ${fiera.Denominazione || fiera.Comune}`,
+                            title: `🎪 ${fiera.Evento}`,
                             start: date,
                             end: date,
                             backgroundColor: '#ffc107',
@@ -407,19 +434,23 @@
                             extendedProps: {
                                 tipo: 'fiera',
                                 comune: fiera.Comune,
-                                denominazione: fiera.Denominazione || 'N/A',
+                                evento: fiera.Evento,
+                                tipologia: fiera.Tipologia || 'N/A',
                                 mese: fiera.Mese || 'N/A',
-                                luogo: fiera['Luogo di svolgimento'] || 'N/A'
+                                luogo: fiera.Luogo || 'N/A',
+                                orario: fiera.Orario || 'N/A'
                             }
                         };
                         
                         calendar.addEvent(evento);
                         eventiAggiunti++;
-                        log(`➕ Aggiunta fiera: ${fiera.Denominazione || fiera.Comune} - ${date}`);
+                        log(`➕ Aggiunta fiera: ${fiera.Evento} - ${date}`);
                         
                     } catch (error) {
                         log(`❌ Errore aggiunta fiera: ${error.message}`);
                     }
+                } else {
+                    log(`⚠️ Data non generata per: ${fiera.Evento} - ${fiera['Data inizio'] || fiera.Mese}`);
                 }
             });
             
@@ -520,6 +551,22 @@
                 if (data >= new Date()) {
                     log(`✅ Data fiera mese generata: ${data.toISOString().split('T')[0]} da "febbraio"`);
                     return data.toISOString().split('T')[0];
+                }
+            }
+            
+            // NUOVO: Gestisci formato solo mese (es: "giugno", "luglio", "settembre")
+            const mesi = {
+                'gennaio': 0, 'febbraio': 1, 'marzo': 2, 'aprile': 3, 'maggio': 4, 'giugno': 5,
+                'luglio': 6, 'agosto': 7, 'settembre': 8, 'ottobre': 9, 'novembre': 10, 'dicembre': 11
+            };
+            
+            for (let [meseNome, meseNum] of Object.entries(mesi)) {
+                if (primaData.toLowerCase().includes(meseNome)) {
+                    const data = new Date(anno, meseNum, 1); // Primo del mese
+                    if (data >= new Date()) {
+                        log(`✅ Data fiera mese generata: ${data.toISOString().split('T')[0]} da "${meseNome}"`);
+                        return data.toISOString().split('T')[0];
+                    }
                 }
             }
             
