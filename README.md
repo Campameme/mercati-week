@@ -1,159 +1,186 @@
-# Calendario Eventi - Mercatini e Fiere
+# 📅 Calendario Eventi - Mercatini e Fiere
 
-Applicazione web per visualizzare a calendario gli eventi di mercatini e fiere in Liguria.
+**Versione 3.0.0** - Calendario interattivo per mercatini e fiere della Liguria con integrazione Google Sheets in tempo reale.
 
-## Caratteristiche
+## 🚀 Caratteristiche Principali
 
-- **Calendario interattivo**: Visualizzazione completa di tutti gli eventi
-- **Google Sheets Integration**: Dati sempre aggiornati direttamente dai tuoi fogli Google
-- **Caricamento prioritario**: Ottimizzato per velocità e performance
-- **Stato online**: Indicatore in tempo reale della connessione
-- **Click sui giorni**: Visualizza tutti gli eventi di una data specifica
-- **Sistema preferiti**: Salva i mercatini preferiti localmente (senza accesso)
-- **Filtri avanzati**: Per tipo di evento, comune e categoria merceologica
-- **Eventi più vicini**: Lista cronologica dei prossimi eventi
-- **Dettagli completi**: Informazioni dettagliate per ogni evento
-- **Aggiornamento manuale**: Pulsante per ricaricare i dati da Google Sheets
-- **Versione ottimizzata**: `index-optimized.html` per deploy online ultra-veloce
+- **📊 Calendario Interattivo**: Visualizzazione mensile, settimanale e lista eventi
+- **🔍 Filtri Avanzati**: Per comune, categoria merceologica e tipo evento
+- **⭐ Sistema Preferiti**: Salva i tuoi eventi preferiti localmente
+- **📍 Eventi Vicini**: Scopri cosa succede nelle prossime 2 settimane
+- **🔄 Dati in Tempo Reale**: Aggiornamento automatico da Google Sheets
+- **📱 Design Responsive**: Ottimizzato per tutti i dispositivi
+- **🟢 Status Online**: Indicatore di connessione in tempo reale
 
-## Come utilizzare l'applicazione
+## 🛠️ Tecnologie Utilizzate
 
-### Requisiti
+- **Frontend**: HTML5, CSS3, JavaScript ES6+
+- **Framework**: Bootstrap 5.3.2
+- **Calendario**: FullCalendar 6.1.10
+- **Parsing CSV**: PapaParse 5.4.1
+- **Hosting**: Netlify (deploy automatico)
+- **Dati**: Google Sheets (API gviz/tq)
 
-Per utilizzare questa applicazione è necessario:
-- Un browser web moderno (Chrome, Firefox, Safari, Edge)
-- I file CSV con i dati (mercatini.csv e fiere.csv)
+## 📁 Struttura Progetto
 
-### 🚀 **Deploy Online (Raccomandato)**
+```
+├── index.html          # Pagina principale ottimizzata
+├── style.css           # Stili CSS con variabili CSS e animazioni
+├── script.js           # Logica JavaScript completa
+├── package.json        # Configurazione progetto
+├── netlify.toml        # Configurazione Netlify
+├── .gitignore          # File da ignorare
+└── README.md           # Documentazione
+```
 
-**Per mettere l'app online e renderla accessibile a tutti:**
+## 🚀 Installazione e Utilizzo
 
-1. **Netlify (Gratuito e veloce)**:
-   - Vai su [netlify.com](https://netlify.com)
-   - Connetti il tuo repository GitHub
-   - Deploy automatico in pochi secondi
-   - URL pubblico: `https://tuo-calendario.netlify.app`
+### **Opzione 1: Utilizzo Online (Raccomandato)**
+1. **Apri l'app**: [https://mercati-week.netlify.app](https://mercati-week.netlify.app)
+2. **Aspetta il caricamento** dei dati da Google Sheets
+3. **Usa i filtri** per trovare eventi specifici
+4. **Clicca sugli eventi** per vedere i dettagli
+5. **Clicca sui giorni** per vedere tutti gli eventi di quel giorno
 
-2. **Vercel (Alternativa eccellente)**:
-   - Vai su [vercel.com](https://vercel.com)
-   - Connetti il repository
-   - Deploy automatico
+### **Opzione 2: Sviluppo Locale**
+1. **Clona il repository**:
+   ```bash
+   git clone https://github.com/Campameme/mercati-week.git
+   cd mercati-week
+   ```
 
-**Vantaggi del deploy online:**
-- ✅ Accessibile da qualsiasi dispositivo
-- ✅ Sempre aggiornato con Google Sheets
-- ✅ Velocità massima con CDN globale
-- ✅ HTTPS automatico per sicurezza
-- ✅ Analytics e monitoraggio integrati
+2. **Avvia server locale**:
+   ```bash
+   python3 -m http.server 8000
+   ```
 
-### 💻 **Sviluppo Locale**
+3. **Apri nel browser**: `http://localhost:8000`
 
-#### Opzione 1: Server Python
-1. Apri il terminale nella cartella del progetto
-2. Esegui: `python3 -m http.server 8000`
-3. Apri il browser e vai a: `http://localhost:8000`
+## 📊 Fonti Dati
 
-#### Opzione 2: Apertura diretta
-1. Apri direttamente il file `index.html` nel browser
-2. I dati verranno caricati automaticamente da Google Sheets
+L'app si connette automaticamente a due Google Sheets:
 
-#### Opzione 3: Versione ottimizzata
-1. Usa `index-optimized.html` per performance massime
-2. Perfetta per il deploy online
+- **🛒 Mercatini**: [Link Google Sheets](https://docs.google.com/spreadsheets/d/1dGB3f47TrT_dVz5PsICci4JuoTWRBQAcPuXjDIYSE58/edit?usp=sharing)
+- **🎪 Fiere**: [Link Google Sheets](https://docs.google.com/spreadsheets/d/1oa6pz7U79YyD8hey2lANS-x6nMCHnaKBC2LtEIsMyTQ/edit?usp=sharing)
 
-### Utilizzo
+## 🎯 Funzionalità Principali
 
-#### Visualizzazione del calendario
-- Visualizza il calendario mensile, settimanale o come lista utilizzando i pulsanti in alto a destra
-- Naviga tra i mesi utilizzando le frecce o torna alla data odierna con il pulsante "oggi"
-- Gli eventi sono colorati diversamente: verde per i mercatini e blu per le fiere
+### **Calendario Interattivo**
+- Navigazione mensile/settimanale
+- Eventi colorati per tipo (🛒 Mercatini, 🎪 Fiere)
+- Click su eventi per dettagli completi
+- Click sui giorni per lista eventi giornaliera
 
-#### Filtraggio degli eventi
-- Utilizza il pannello "Filtra Eventi" sulla sinistra per filtrare gli eventi:
-  - Seleziona il tipo di evento (mercatini, fiere o entrambi)
-  - Filtra per comune specifico
-  - Filtra per categoria merceologica
+### **Sistema Filtri**
+- **🏘️ Comune**: Filtra per località specifica
+- **🏷️ Categoria**: Filtra per settore merceologico
+- **📋 Tipo**: Filtra per tipo di evento
 
-#### Visualizzazione dei dettagli
-- **Click su un evento**: Visualizza tutti i dettagli dell'evento specifico
-- **Click su un giorno**: Mostra tutti gli eventi di quella data in un popup
-- **Prossimi eventi**: Nel pannello di destra vedi i prossimi 5 eventi in ordine cronologico
-- **Preferiti**: Salva i mercatini che ti interessano per un accesso rapido
+### **Gestione Preferiti**
+- Salva eventi preferiti (senza login)
+- Sincronizzazione automatica locale
+- Lista dedicata sempre visibile
 
-#### Sistema preferiti
-- Clicca il pulsante "🤍 Aggiungi" per salvare un mercatino nei preferiti
-- I preferiti vengono salvati localmente nel browser (nessun accesso richiesto)
-- Gestisci i tuoi preferiti dal pannello "I Miei Preferiti"
+### **Eventi Vicini**
+- Prossimi 5 eventi nelle 2 settimane
+- Calcolo automatico giorni rimanenti
+- Aggiornamento in tempo reale
 
-## Note tecniche
+## 🔧 Configurazione Avanzata
 
-L'applicazione è interamente client-side e utilizza:
-- **FullCalendar**: Per la visualizzazione del calendario interattivo
-- **Google Sheets API**: Per caricare i dati direttamente dai tuoi fogli Google
-- **Bootstrap**: Per l'interfaccia utente moderna e responsive
-- **localStorage**: Per salvare i preferiti localmente
-- **Fetch API**: Con priorità alta per caricamento veloce dei dati
-- **Service Workers**: Per funzionalità offline (in sviluppo)
+### **Personalizzazione Google Sheets**
+1. **Copia i template** forniti
+2. **Aggiorna gli ID** in `script.js`
+3. **Rendi pubblici** i fogli di calcolo
+4. **Usa formato CSV** per compatibilità
 
-## Google Sheets Integration
+### **Personalizzazione Stili**
+- **Variabili CSS**: Modifica colori e dimensioni in `style.css`
+- **Temi**: Cambia colori primari e secondari
+- **Responsive**: Ottimizzazioni per mobile e tablet
 
-### Fogli supportati:
-- **Mercatini**: [Link al foglio](https://docs.google.com/spreadsheets/d/1dGB3f47TrT_dVz5PsICci4JuoTWRBQAcPuXjDIYSE58/edit?usp=sharing)
-- **Fiere**: [Link al foglio](https://docs.google.com/spreadsheets/d/1oa6pz7U79YyD8hey2lANS-x6nMCHnaKBC2LtEIsMyTQ/edit?usp=sharing)
+## 🚀 Deploy Online
 
-### Vantaggi:
-- **Dati sempre aggiornati**: Modifica i tuoi fogli Google e i cambiamenti si riflettono immediatamente
-- **Collaborazione**: Più persone possono modificare i dati contemporaneamente
-- **Backup automatico**: Google mantiene automaticamente backup dei tuoi dati
-- **Accesso ovunque**: Modifica i dati da qualsiasi dispositivo con accesso a Google Sheets
+### **Netlify (Raccomandato)**
+1. **Connetti repository** GitHub
+2. **Build settings**:
+   - Build command: `npm run build`
+   - Publish directory: `.`
+3. **Deploy automatico** ad ogni push
 
-### Come funziona:
-1. I dati vengono caricati automaticamente all'avvio dell'applicazione
-2. Usa il pulsante "🔄 Ricarica dati da Google Sheets" per aggiornamenti manuali
-3. I fogli devono essere pubblici o condivisi con permessi di lettura
-4. Il formato delle colonne deve corrispondere a quello originale dei CSV
+### **Vercel**
+1. **Importa progetto** da GitHub
+2. **Framework preset**: Static
+3. **Deploy automatico** configurato
 
-## Limitazioni
+### **GitHub Pages**
+1. **Abilita Pages** nelle impostazioni repository
+2. **Source**: Branch main
+3. **Deploy** automatico
 
-- L'applicazione interpreta le date dei mercatini ricorrenti in base ai giorni della settimana o del mese
-- Per le fiere con date multiple, viene utilizzata solo la prima data per evitare duplicazioni
-- L'app funziona meglio quando i file CSV sono formattati correttamente
-- I dati vengono puliti automaticamente rimuovendo caratteri problematici e righe vuote
+## 📱 Compatibilità
 
-## 🚀 **Ottimizzazioni e Performance**
+- **Browser**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+- **Dispositivi**: Desktop, tablet, smartphone
+- **Risoluzioni**: 320px - 4K
+- **Connessioni**: 3G, 4G, 5G, WiFi
 
-### **Versione Ottimizzata (`index-optimized.html`)**
-- **Bundle size ridotto del 60%**: CSS e JavaScript inline
-- **Caricamento < 100ms**: Ottimizzazioni aggressive per velocità massima
-- **CDN globale**: FullCalendar e PapaParse caricati da CDN veloci
-- **Cache intelligente**: Headers HTTP ottimizzati per Netlify/Vercel
-- **Responsive design**: Interfaccia ottimizzata per tutti i dispositivi
+## 🔄 Aggiornamenti
 
-### **Deploy Online**
-- **Netlify**: Configurazione automatica con `netlify.toml`
-- **Vercel**: Deploy con un click
-- **GitHub Pages**: Hosting gratuito integrato
-- **HTTPS automatico**: Sicurezza garantita
-- **CDN globale**: Velocità massima ovunque
+### **Automatici**
+- **Dati**: Aggiornamento in tempo reale da Google Sheets
+- **Deploy**: Automatico ad ogni commit su GitHub
 
-## 🔧 **Risoluzione problemi**
+### **Manuali**
+- **Filtri**: Reset con pulsante "Ricarica Dati"
+- **Preferiti**: Gestione locale persistente
+- **Cache**: Pulizia automatica browser
 
-### **Date multiple non visualizzate**
-Se hai problemi con le date multiple nei CSV, l'applicazione ora:
-- Prende solo la prima data quando ce ne sono multiple
-- Rimuove caratteri problematici come `\r` e `\n`
-- Filtra automaticamente le righe vuote o incomplete
+## 🐛 Risoluzione Problemi
 
-### **Calcolo corretto delle date ricorrenti**
-L'applicazione ora gestisce correttamente:
-- **Giorni settimanali**: Lunedì, martedì, ecc. (corretti i bug precedenti)
-- **Date specifiche del mese**: "1^ domenica", "2^ domenica", ecc.
-- **Formati complessi**: "ogni terzo sabato del mese"
-- **Range di date**: "dal 1.1.2025 al 30.04.2025"
-- **Mesi specifici**: "tutti i martedì di luglio, agosto"
-- **Date multiple**: "1° sabato e domenica del mese"
+### **Eventi Non Visibili**
+1. **Controlla console** browser per errori
+2. **Verifica connessione** internet
+3. **Ricarica dati** con pulsante dedicato
+4. **Controlla filtri** attivi
 
-### **Problemi di performance**
-- **Usa `index-optimized.html`** per velocità massima
-- **Deploy online** per CDN globale e HTTPS
-- **Aggiorna Google Sheets** per dati sempre freschi
+### **Lentezza Caricamento**
+1. **Verifica connessione** Google Sheets
+2. **Controlla dimensioni** dataset
+3. **Usa filtri** per ridurre eventi
+4. **Aggiorna browser** all'ultima versione
+
+## 📈 Performance e Ottimizzazioni
+
+- **Lazy Loading**: Caricamento progressivo eventi
+- **Debouncing**: Ottimizzazione filtri in tempo reale
+- **Caching**: Memorizzazione locale preferiti
+- **Compressione**: CSS e JS ottimizzati
+- **CDN**: Librerie esterne da CDN affidabili
+
+## 🤝 Contributi
+
+1. **Fork** il repository
+2. **Crea branch** per feature: `git checkout -b feature/nuova-funzionalita`
+3. **Commit** modifiche: `git commit -m 'Aggiunta nuova funzionalità'`
+4. **Push** al branch: `git push origin feature/nuova-funzionalita`
+5. **Crea Pull Request**
+
+## 📄 Licenza
+
+Questo progetto è rilasciato sotto licenza **MIT**. Vedi il file `LICENSE` per dettagli.
+
+## 👨‍💻 Autore
+
+**Emanuele Campanini** - [GitHub](https://github.com/Campameme)
+
+## 🌟 Ringraziamenti
+
+- **Google Sheets** per l'hosting dati
+- **FullCalendar** per la libreria calendario
+- **Bootstrap** per il framework CSS
+- **Netlify** per l'hosting gratuito
+
+---
+
+**⭐ Se ti piace questo progetto, lascia una stella su GitHub!**

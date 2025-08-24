@@ -26,8 +26,12 @@ Thumbs.db
 dist/
 build/
 node_modules/
+.netlify/
 
 # File di configurazione locale
 .env
 .env.local
 .env.production
+
+# File di debug temporanei
+debug-*.html

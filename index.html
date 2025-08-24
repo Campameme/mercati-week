@@ -4,119 +4,156 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario Eventi - Mercatini e Fiere</title>
+    <meta name="description" content="Calendario interattivo per mercatini e fiere della Liguria con integrazione Google Sheets">
+    <meta name="keywords" content="mercatini, fiere, liguria, calendario, eventi">
+    <meta name="author" content="Emanuele Campanini">
+    
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.0/main.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="style.css" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
 </head>
 <body>
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Calendario Eventi - Mercatini e Fiere</h1>
-            <div class="d-flex align-items-center">
-                <div class="badge bg-success me-2">
-                    <span class="spinner-border spinner-border-sm me-1" id="statusIndicator"></span>
-                    Online
+    <!-- Header -->
+    <header class="bg-primary text-white py-3">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="h3 mb-0">📅 Calendario Eventi - Mercatini e Fiere</h1>
+                    <p class="mb-0 small">Scopri i mercatini e le fiere più vicini a te</p>
                 </div>
-                <small class="text-muted">Dati aggiornati in tempo reale</small>
+                <div class="col-md-4 text-end">
+                    <div id="statusIndicator" class="d-inline-block">
+                        <span class="badge bg-success">🟢 Online</span>
+                    </div>
+                </div>
             </div>
         </div>
-        
+    </header>
+
+    <!-- Main Content -->
+    <main class="container my-4">
+        <!-- Loading Status -->
+        <div id="statusCaricamento" class="alert alert-info text-center d-none">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            <span id="statusTesto">Caricamento in corso...</span>
+        </div>
+
+        <!-- Filters Row -->
         <div class="row mb-4">
-            <div class="col-md-6">
+            <div class="col-md-3">
+                <label for="filtroComune" class="form-label">🏘️ Comune</label>
+                <select id="filtroComune" class="form-select">
+                    <option value="">Tutti i comuni</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filtroCategoria" class="form-label">🏷️ Categoria</label>
+                <select id="filtroCategoria" class="form-select">
+                    <option value="">Tutte le categorie</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filtroTipo" class="form-label">📋 Tipo Evento</label>
+                <select id="filtroTipo" class="form-select">
+                    <option value="">Tutti gli eventi</option>
+                    <option value="mercatino">Mercatini</option>
+                    <option value="fiera">Fiere</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button id="btnRicarica" class="btn btn-outline-primary w-100 mt-4">
+                    🔄 Ricarica Dati
+                </button>
+            </div>
+        </div>
+
+        <!-- Calendar Container -->
+        <div class="row">
+            <div class="col-lg-8">
                 <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        Filtra Eventi
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">📅 Calendario Eventi</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label for="tipoEvento" class="form-label">Tipo di evento</label>
-                            <select id="tipoEvento" class="form-select">
-                                <option value="tutti">Tutti gli eventi</option>
-                                <option value="mercatini">Solo mercatini</option>
-                                <option value="fiere">Solo fiere</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="comune" class="form-label">Comune</label>
-                            <select id="comune" class="form-select">
-                                <option value="tutti">Tutti i comuni</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="categoriaFilter" class="form-label">Categoria merceologica</label>
-                            <select id="categoriaFilter" class="form-select">
-                                <option value="tutti">Tutte le categorie</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <div id="statusCaricamento" class="alert alert-info">
-                                <div class="spinner-border spinner-border-sm me-2" role="status">
-                                    <span class="visually-hidden">Caricamento...</span>
-                                </div>
-                                Caricamento dati da Google Sheets in corso...
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <button id="ricaricaDati" class="btn btn-outline-primary btn-sm w-100">
-                                🔄 Ricarica dati da Google Sheets
-                            </button>
-                        </div>
+                        <div id="calendar"></div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            
+            <div class="col-lg-4">
+                <!-- Favorites Section -->
                 <div class="card mb-3">
-                    <div class="card-header bg-success text-white">
-                        Eventi più vicini
-                    </div>
-                    <div class="card-body">
-                        <ul id="prossimiEventi" class="list-group">
-                            <!-- Gli eventi più vicini verranno inseriti qui -->
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header bg-warning text-dark">
-                        🖤 I Miei Preferiti
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">⭐ I Miei Preferiti</h6>
                     </div>
                     <div class="card-body">
                         <div id="preferiti">
-                            <!-- I mercatini preferiti verranno inseriti qui -->
+                            <p class="text-muted small">Nessun evento preferito salvato</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nearest Events -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">📍 Eventi Più Vicini</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="eventiVicini">
+                            <p class="text-muted small">Caricamento eventi...</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <div class="card mb-4">
-            <div class="card-body">
-                <div id="calendar"></div>
-            </div>
-        </div>
-        
-        <!-- Modal per i dettagli dell'evento -->
-        <div class="modal fade" id="eventoModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="eventoModalLabel">Dettagli Evento</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" id="eventoModalBody">
-                        <!-- I dettagli dell'evento verranno inseriti qui -->
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
-                    </div>
+    </main>
+
+    <!-- Event Details Modal -->
+    <div class="modal fade" id="eventoModal" tabindex="-1" aria-labelledby="eventoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventoModalLabel">📅 Dettagli Evento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="eventoModalBody">
+                    <!-- Content will be populated dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Daily Events Modal -->
+    <div class="modal fade" id="giornoModal" tabindex="-1" aria-labelledby="giornoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="giornoModalLabel">📅 Eventi del Giorno</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="giornoModalBody">
+                    <!-- Content will be populated dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.0/main.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
