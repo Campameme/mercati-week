@@ -1,1 +1,39 @@
-
+{
+  "name": "calendario-eventi-mercatini-fiere",
+  "version": "2.0.0",
+  "description": "Calendario interattivo per mercatini e fiere con integrazione Google Sheets",
+  "main": "index-optimized.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "dev": "python3 -m http.server 8000",
+    "build": "echo 'Build completato - file pronti per il deploy'",
+    "deploy:netlify": "echo 'Deploy su Netlify: 1) Vai su netlify.com 2) Connetti il repository 3) Deploy automatico'",
+    "deploy:vercel": "echo 'Deploy su Vercel: 1) Vai su vercel.com 2) Connetti il repository 3) Deploy automatico'"
+  },
+  "keywords": [
+    "calendario",
+    "eventi",
+    "mercatini",
+    "fiere",
+    "google-sheets",
+    "fullcalendar",
+    "responsive"
+  ],
+  "author": "Emanuele Campanini",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Campameme/mercati-week.git"
+  },
+  "homepage": "https://tuo-calendario.netlify.app",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
