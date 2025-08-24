@@ -636,7 +636,16 @@
                                                         item.Comune.trim() && 
                                                         (item.Giorno || item['Data inizio'] || item.Mese);
                                 
-                                return isMercatino && hasRequiredFields;
+                                const isValid = isMercatino && hasRequiredFields;
+                                
+                                if (!isValid) {
+                                    console.log(`❌ Mercatino scartato: ${item.Comune} - isMercatino: ${isMercatino}, hasRequiredFields: ${hasRequiredFields}`);
+                                    console.log(`🔍 Dettagli: Evento=${item.Evento}, Tipologia=${item.Tipologia}, Comune=${item.Comune}, Giorno=${item.Giorno}, Data inizio=${item['Data inizio']}, Mese=${item.Mese}`);
+                                } else {
+                                    console.log(`✅ Mercatino valido: ${item.Comune}`);
+                                }
+                                
+                                return isValid;
                             });
                             
                             console.log(`🎯 Mercatini validi: ${mercatini.length}`);
@@ -695,7 +704,16 @@
                                                         item.Comune.trim() && 
                                                         (item['Data inizio'] || item.Mese || item.Giorno);
                                 
-                                return isNotMercatino && hasRequiredFields;
+                                const isValid = isNotMercatino && hasRequiredFields;
+                                
+                                if (!isValid) {
+                                    console.log(`❌ Fiera scartata: ${item.Comune || item.Evento} - isNotMercatino: ${isNotMercatino}, hasRequiredFields: ${hasRequiredFields}`);
+                                    console.log(`🔍 Dettagli: Evento=${item.Evento}, Tipologia=${item.Tipologia}, Comune=${item.Comune}, Data inizio=${item['Data inizio']}, Mese=${item.Mese}, Giorno=${item.Giorno}`);
+                                } else {
+                                    console.log(`✅ Fiera valida: ${item.Comune || item.Evento}`);
+                                }
+                                
+                                return isValid;
                             });
                             
                             console.log(`🎯 Fiere valide: ${fiere.length}`);
@@ -736,14 +754,18 @@
             
             // Aggiungi mercatini
             console.log('🛒 Aggiunta mercatini al calendario...');
+            console.log(`📊 Totale mercatini da processare: ${mercatini.length}`);
+            
             mercatini.forEach((mercatino, index) => {
-                console.log(`🔍 Processando mercatino ${index + 1}: ${mercatino.Comune} - ${mercatino.Giorno || mercatino['Data inizio'] || mercatino.Mese}`);
+                console.log(`\n🔍 Processando mercatino ${index + 1}: ${mercatino.Comune}`);
                 console.log(`📅 Dettagli ricorrenza: Giorno=${mercatino.Giorno}, Data inizio=${mercatino['Data inizio']}, Data fine=${mercatino['Data fine']}`);
+                console.log(`📋 Dati completi:`, mercatino);
                 
                 let date = null;
                 
                 // Prova prima con Giorno (per ricorrenze)
                 if (mercatino.Giorno) {
+                    console.log(`🔄 Tentativo con Giorno ricorrente: ${mercatino.Giorno}`);
                     // Se è ricorrente tutto l'anno, usa 12 mesi
                     // Se ci sono date specifiche, usa quelle come limite
                     const mesi = (mercatino['Data inizio'] === 'ricorrente' && mercatino['Data fine'] === 'ricorrente') ? 12 : 12;
@@ -752,17 +774,26 @@
                 
                 // Se non funziona, prova con Data inizio
                 if (!date && mercatino['Data inizio']) {
+                    console.log(`🔄 Tentativo con Data inizio: ${mercatino['Data inizio']}`);
                     date = generaDataFiera(mercatino['Data inizio'], anno);
-                    if (date) date = [date]; // Converti in array per compatibilità
+                    if (date) {
+                        date = [date]; // Converti in array per compatibilità
+                        console.log(`✅ Data inizio convertita in array: ${date}`);
+                    }
                 }
                 
                 // Se non funziona, prova con Mese
                 if (!date && mercatino.Mese) {
+                    console.log(`🔄 Tentativo con Mese: ${mercatino.Mese}`);
                     date = generaDataFiera(mercatino.Mese, anno);
-                    if (date) date = [date]; // Converti in array per compatibilità
+                    if (date) {
+                        date = [date]; // Converti in array per compatibilità
+                        console.log(`✅ Mese convertito in array: ${date}`);
+                    }
                 }
                 
                 if (date && date.length > 0) {
+                    console.log(`✅ Date generate con successo: ${date.length} date`);
                     date.forEach(dataSingola => {
                         try {
                             const evento = {
@@ -795,6 +826,7 @@
                     });
                 } else {
                     console.log(`⚠️ Nessuna data valida per mercatino: ${mercatino.Comune}`);
+                    console.log(`🔍 Motivo: date=${date}, length=${date ? date.length : 'null'}`);
                 }
             });
             
@@ -805,23 +837,37 @@
             let fiereAggiunte = 0;
             
             fiere.forEach((fiera, index) => {
-                console.log(`🔍 Processando fiera ${index + 1}: ${fiera.Evento || fiera.Comune} - ${fiera['Data inizio'] || fiera.Mese}`);
+                console.log(`\n🔍 Processando fiera ${index + 1}: ${fiera.Evento || fiera.Comune}`);
+                console.log(`📅 Dettagli fiera: Data inizio=${fiera['Data inizio']}, Mese=${fiera.Mese}, Giorno=${fiera.Giorno}`);
+                console.log(`📋 Dati completi:`, fiera);
                 
                 let date = null;
                 
                 // Prova prima con Data inizio
                 if (fiera['Data inizio']) {
+                    console.log(`🔄 Tentativo con Data inizio: ${fiera['Data inizio']}`);
                     date = generaDataFiera(fiera['Data inizio'], anno);
+                    if (date) {
+                        console.log(`✅ Data inizio generata: ${date}`);
+                    }
                 }
                 
                 // Se non funziona, prova con Mese
                 if (!date && fiera.Mese) {
+                    console.log(`🔄 Tentativo con Mese: ${fiera.Mese}`);
                     date = generaDataFiera(fiera.Mese, anno);
+                    if (date) {
+                        console.log(`✅ Mese generato: ${date}`);
+                    }
                 }
                 
                 // Se non funziona, prova con Giorno
                 if (!date && fiera.Giorno) {
+                    console.log(`🔄 Tentativo con Giorno: ${fiera.Giorno}`);
                     date = generaDataFiera(fiera.Giorno, anno);
+                    if (date) {
+                        console.log(`✅ Giorno generato: ${date}`);
+                    }
                 }
                 
                 if (date) {
@@ -856,6 +902,7 @@
                     }
                 } else {
                     console.log(`⚠️ Nessuna data valida per fiera: ${fiera.Evento || fiera.Comune}`);
+                    console.log(`🔍 Motivo: date=${date}`);
                 }
             });
             
@@ -907,6 +954,8 @@
                 }
             }
             
+            console.log(`📅 Periodo calcolo: da ${dataInizioCalcolo.toISOString().split('T')[0]} a ${dataFineCalcolo.toISOString().split('T')[0]}`);
+            
             // Determina il giorno della settimana
             let giornoSettimana = -1;
             if (giornoPulito.includes('domenica')) giornoSettimana = 0;
@@ -922,21 +971,30 @@
                 return null;
             }
             
+            console.log(`✅ Giorno settimana riconosciuto: ${giornoSettimana} (${['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'][giornoSettimana]})`);
+            
             // Trova il primo giorno della settimana a partire dalla data inizio
             let data = new Date(dataInizioCalcolo);
             while (data.getDay() !== giornoSettimana) {
                 data.setDate(data.getDate() + 1);
             }
             
+            console.log(`📅 Prima data trovata: ${data.toISOString().split('T')[0]}`);
+            
             // Genera date per il periodo specificato
+            let contatoreDate = 0;
             while (data <= dataFineCalcolo) {
                 if (data >= new Date()) {
                     date.push(data.toISOString().split('T')[0]);
+                    contatoreDate++;
                 }
                 data.setDate(data.getDate() + 7);
             }
             
             console.log(`✅ Date generate per ${giornoPulito}: ${date.length} date nel periodo ${dataInizioCalcolo.toISOString().split('T')[0]} - ${dataFineCalcolo.toISOString().split('T')[0]}`);
+            if (date.length > 0) {
+                console.log(`📅 Prime 5 date: ${date.slice(0, 5).join(', ')}`);
+            }
             return date;
         }
         
