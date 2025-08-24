@@ -97,22 +97,49 @@ const Utils = {
             console.log('📅 Evento con periodo limitato');
             
             if (dataInizio && dataInizio !== 'ricorrente') {
-                const [giornoI, meseI] = dataInizio.split('/').map(Number);
-                if (giornoI && meseI) {
-                    dataPartenza = new Date(anno, meseI - 1, giornoI);
+                try {
+                    const [giornoI, meseI] = dataInizio.split('/').map(Number);
+                    if (giornoI && meseI && !isNaN(giornoI) && !isNaN(meseI)) {
+                        dataPartenza = new Date(anno, meseI - 1, giornoI);
+                    } else {
+                        console.warn(`⚠️ Data inizio non valida per ${comune}: ${dataInizio}`);
+                        dataPartenza = new Date(anno, 0, 1);
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ Errore parsing data inizio per ${comune}: ${dataInizio}`, error);
+                    dataPartenza = new Date(anno, 0, 1);
                 }
             } else {
                 dataPartenza = new Date(anno, 0, 1); // Inizio anno
             }
             
             if (dataFine && dataFine !== 'ricorrente') {
-                const [giornoF, meseF] = dataFine.split('/').map(Number);
-                if (giornoF && meseF) {
-                    dataLimite = new Date(anno, meseF - 1, giornoF);
+                try {
+                    const [giornoF, meseF] = dataFine.split('/').map(Number);
+                    if (giornoF && meseF && !isNaN(giornoF) && !isNaN(meseF)) {
+                        dataLimite = new Date(anno, meseF - 1, giornoF);
+                    } else {
+                        console.warn(`⚠️ Data fine non valida per ${comune}: ${dataFine}`);
+                        dataLimite = new Date(anno, 11, 31);
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ Errore parsing data fine per ${comune}: ${dataFine}`, error);
+                    dataLimite = new Date(anno, 11, 31);
                 }
             } else {
                 dataLimite = new Date(anno, 11, 31); // Fine anno
             }
+        }
+        
+        // Verifica che le date siano valide
+        if (!dataPartenza || isNaN(dataPartenza.getTime())) {
+            console.warn(`⚠️ Data partenza non valida per ${comune}, uso inizio anno`);
+            dataPartenza = new Date(anno, 0, 1);
+        }
+        
+        if (!dataLimite || isNaN(dataLimite.getTime())) {
+            console.warn(`⚠️ Data limite non valida per ${comune}, uso fine anno`);
+            dataLimite = new Date(anno, 11, 31);
         }
         
         console.log(`📅 Periodo: da ${dataPartenza.toLocaleDateString()} a ${dataLimite.toLocaleDateString()}`);
@@ -148,13 +175,15 @@ const Utils = {
             return this.generaDateMensili(ordinale, giornoDellaSettimana, dataInizio, dataFine);
         }
         
-        // Caso 3: Prima/Ultima (es: "prima domenica", "ultima domenica")
+        // Caso 3: Prima/Ultima (es: "prima domenica", "ultima domenica", "tutte le prime domeniche")
         const primaMatch = giorno.match(/prima\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)/);
         const ultimaMatch = giorno.match(/ultima?\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)/);
+        const tuttePrimeMatch = giorno.match(/tutte le prime\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)/);
         
-        if (primaMatch) {
-            const giornoDellaSettimana = giorni.indexOf(primaMatch[1]);
-            console.log(`📅 Prima ${primaMatch[1]} del mese`);
+        if (primaMatch || tuttePrimeMatch) {
+            const matchResult = primaMatch || tuttePrimeMatch;
+            const giornoDellaSettimana = giorni.indexOf(matchResult[1]);
+            console.log(`📅 Prima ${matchResult[1]} del mese`);
             return this.generaDateMensili(1, giornoDellaSettimana, dataInizio, dataFine);
         }
         
