@@ -283,58 +283,57 @@ function aggiornaCalendario() {
     console.log('🗑️ Eventi esistenti rimossi');
     
     let eventiAggiunti = 0;
+    const oggi = new Date();
+    const anno = oggi.getFullYear();
     
-    // Aggiungi mercatini
-    mercatini.forEach((mercatino, index) => {
-        const date = creaDataMercatino(mercatino.Giorno);
-        if (date) {
-            // Se date è un array, crea un evento per ogni data
-            if (Array.isArray(date)) {
-                date.forEach(dataSingola => {
-                    calendar.addEvent({
-                        title: `🛒 ${mercatino.Comune}`,
-                        start: dataSingola,
-                        end: dataSingola,
-                        extendedProps: {
-                            tipo: 'mercatino',
-                            dati: mercatino
-                        },
-                        className: 'fc-event-mercatino'
-                    });
-                    eventiAggiunti++;
-                });
-            } else {
-                // Se date è una singola data
-                calendar.addEvent({
+    // Aggiungi mercatini (solo prossimi 3 mesi per performance)
+    mercatini.slice(0, 20).forEach((mercatino, index) => {
+        console.log(`🔍 Processando mercatino ${index + 1}: ${mercatino.Comune} - ${mercatino.Giorno}`);
+        
+        const date = creaDataMercatino(mercatino.Giorno, anno, 3);
+        if (date && date.length > 0) {
+            date.forEach(dataSingola => {
+                const evento = {
                     title: `🛒 ${mercatino.Comune}`,
-                    start: date,
-                    end: date,
+                    start: dataSingola,
+                    end: dataSingola,
+                    backgroundColor: '#28a745',
+                    borderColor: '#28a745',
                     extendedProps: {
                         tipo: 'mercatino',
                         dati: mercatino
-                    },
-                    className: 'fc-event-mercatino'
-                });
+                    }
+                };
+                
+                calendar.addEvent(evento);
                 eventiAggiunti++;
-            }
+                console.log(`➕ Aggiunto evento: ${mercatino.Comune} - ${dataSingola}`);
+            });
         }
     });
     
-    // Aggiungi fiere
-    fiere.forEach((fiera, index) => {
-        const date = creaDataFiera(fiera['Data inizio']);
+    // Aggiungi fiere (solo future)
+    fiere.slice(0, 20).forEach((fiera, index) => {
+        console.log(`🔍 Processando fiera ${index + 1}: ${fiera.Comune} - ${fiera['Data inizio']}`);
+        
+        const date = creaDataFiera(fiera['Data inizio'], anno);
         if (date) {
-            calendar.addEvent({
+            const evento = {
                 title: `🎪 ${fiera.Denominazione || fiera.Comune}`,
                 start: date,
                 end: date,
+                backgroundColor: '#ffc107',
+                borderColor: '#ffc107',
+                textColor: '#000',
                 extendedProps: {
                     tipo: 'fiera',
                     dati: fiera
-                },
-                className: 'fc-event-fiera'
-            });
+                }
+            };
+            
+            calendar.addEvent(evento);
             eventiAggiunti++;
+            console.log(`➕ Aggiunta fiera: ${fiera.Denominazione || fiera.Comune} - ${date}`);
         }
     });
     
@@ -343,36 +342,30 @@ function aggiornaCalendario() {
 }
 
 // ===== LOGICA DATE =====
-function creaDataMercatino(giorno) {
+function creaDataMercatino(giorno, anno, mesi) {
     if (!giorno) return null;
-    
-    const oggi = new Date();
-    const anno = oggi.getFullYear();
     
     console.log(`🔍 Creando data mercatino per: "${giorno}"`);
     
-    // Gestisci diversi formati di data
-    if (giorno.includes('domenica')) {
-        return trovaGiorniSettimanali(anno, 0);
-    } else if (giorno.includes('lunedì') || giorno.includes('lunedi')) {
-        return trovaGiorniSettimanali(anno, 1);
-    } else if (giorno.includes('martedì') || giorno.includes('martedi')) {
-        return trovaGiorniSettimanali(anno, 2);
-    } else if (giorno.includes('mercoledì') || giorno.includes('mercoledi')) {
-        return trovaGiorniSettimanali(anno, 3);
-    } else if (giorno.includes('giovedì') || giorno.includes('giovedi')) {
-        return trovaGiorniSettimanali(anno, 4);
-    } else if (giorno.includes('venerdì') || giorno.includes('venerdi')) {
-        return trovaGiorniSettimanali(anno, 5);
-    } else if (giorno.includes('sabato')) {
-        return trovaGiorniSettimanali(anno, 6);
+    // Determina il giorno della settimana
+    let giornoSettimana = -1;
+    if (giorno.includes('domenica')) giornoSettimana = 0;
+    else if (giorno.includes('lunedì') || giorno.includes('lunedi')) giornoSettimana = 1;
+    else if (giorno.includes('martedì') || giorno.includes('martedi')) giornoSettimana = 2;
+    else if (giorno.includes('mercoledì') || giorno.includes('mercoledi')) giornoSettimana = 3;
+    else if (giorno.includes('giovedì') || giorno.includes('giovedi')) giornoSettimana = 4;
+    else if (giorno.includes('venerdì') || giorno.includes('venerdi')) giornoSettimana = 5;
+    else if (giorno.includes('sabato')) giornoSettimana = 6;
+    
+    if (giornoSettimana === -1) {
+        console.log(`❌ Giorno non riconosciuto: ${giorno}`);
+        return null;
     }
     
-    console.log(`❌ Formato mercatino non riconosciuto: "${giorno}"`);
-    return null;
+    return trovaGiorniSettimanali(anno, giornoSettimana, mesi);
 }
 
-function trovaGiorniSettimanali(anno, giornoSettimana) {
+function trovaGiorniSettimanali(anno, giornoSettimana, mesi) {
     const eventi = [];
     const dataInizio = new Date(anno, 0, 1);
     let data = new Date(dataInizio);
@@ -382,17 +375,18 @@ function trovaGiorniSettimanali(anno, giornoSettimana) {
         data.setDate(data.getDate() + 1);
     }
     
-    // Genera tutti i giorni per l'anno
-    while (data.getFullYear() === anno) {
+    // Genera date per i mesi specificati
+    const dataFine = new Date(anno, mesi, 0);
+    while (data <= dataFine) {
         eventi.push(data.toISOString().split('T')[0]);
         data.setDate(data.getDate() + 7);
     }
     
-    console.log(`📅 Generati ${eventi.length} giorni per anno ${anno}, giorno settimana ${giornoSettimana}`);
+    console.log(`📅 Generate ${eventi.length} date per anno ${anno}, giorno settimana ${giornoSettimana}, mesi ${mesi}`);
     return eventi;
 }
 
-function creaDataFiera(dataInizio) {
+function creaDataFiera(dataInizio, anno) {
     if (!dataInizio) return null;
     
     console.log(`🔍 Creando data fiera per: "${dataInizio}"`);
@@ -403,10 +397,16 @@ function creaDataFiera(dataInizio) {
     // Gestisci formato DD/MM
     if (primaData.includes('/')) {
         const [giorno, mese] = primaData.split('/');
-        const anno = new Date().getFullYear();
         const data = new Date(anno, parseInt(mese) - 1, parseInt(giorno));
-        console.log(`✅ Data fiera generata: ${data.toISOString().split('T')[0]}`);
-        return data;
+        
+        // Verifica che la data sia nel futuro
+        if (data >= new Date()) {
+            console.log(`✅ Data fiera generata: ${data.toISOString().split('T')[0]}`);
+            return data.toISOString().split('T')[0];
+        } else {
+            console.log(`⚠️ Data fiera nel passato: ${data.toISOString().split('T')[0]}`);
+            return null;
+        }
     }
     
     console.log(`❌ Formato data fiera non riconosciuto: "${dataInizio}"`);
