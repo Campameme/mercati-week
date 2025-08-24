@@ -1,4 +1,6 @@
 // Configurazione dell'applicazione
+console.log('🚀 Caricamento utils.js...');
+
 const CONFIG = {
     // Google Sheets URLs
     GOOGLE_SHEETS_URL: 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/gviz/tq?tqx=out:csv&sheet=Foglio1',
@@ -27,6 +29,8 @@ const CONFIG = {
         RENDER_DELAY: 100
     }
 };
+
+console.log('📝 Definizione Logger...');
 
 // Utility per il logging
 const Logger = {
@@ -60,6 +64,8 @@ const Logger = {
         }
     }
 };
+
+console.log('🔧 Definizione Utils...');
 
 // Utility per la gestione delle date e dati
 const Utils = {
@@ -216,6 +222,8 @@ const Utils = {
     }
 };
 
+console.log('📅 Definizione CalendarManager...');
+
 // Gestione del calendario FullCalendar
 const CalendarManager = {
     calendar: null,
@@ -371,6 +379,8 @@ const CalendarManager = {
         }
     }
 };
+
+console.log('📊 Definizione DataLoader...');
 
 // Gestione del caricamento e parsing dei dati
 const DataLoader = {
@@ -638,6 +648,8 @@ const DataLoader = {
     }
 };
 
+console.log('🎯 Definizione App...');
+
 // Applicazione principale
 const App = {
     // Inizializzazione
@@ -773,6 +785,8 @@ const App = {
     }
 };
 
+console.log('🔍 Definizione FilterManager...');
+
 // Gestione filtri
 const FilterManager = {
     // Aggiorna filtri
@@ -808,6 +822,8 @@ const FilterManager = {
         });
     }
 };
+
+console.log('⭐ Definizione EventManager...');
 
 // Gestione eventi e modali
 const EventManager = {
@@ -1049,10 +1065,34 @@ const EventManager = {
     }
 };
 
+console.log('🎬 Setup inizializzazione...');
+
 // Inizializzazione quando il DOM è pronto
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('📱 DOM caricato, avvio App.init()...');
     App.init();
 });
 
 // Rendi App accessibile globalmente
 window.app = App;
+console.log('✅ App resa accessibile globalmente come window.app');
+console.log('🎯 Tutti i moduli caricati:', {
+    CONFIG: !!CONFIG,
+    Logger: !!Logger,
+    Utils: !!Utils,
+    CalendarManager: !!CalendarManager,
+    DataLoader: !!DataLoader,
+    App: !!App,
+    FilterManager: !!FilterManager,
+    EventManager: !!EventManager
+});
+
+// Test di funzionalità
+console.log('🧪 Test funzionalità:');
+console.log('- CONFIG.GOOGLE_SHEETS_URL:', CONFIG.GOOGLE_SHEETS_URL);
+console.log('- Logger.info test:', typeof Logger.info);
+console.log('- Utils.formattaData test:', typeof Utils.formattaData);
+console.log('- CalendarManager.init test:', typeof CalendarManager.init);
+console.log('- DataLoader.caricaDati test:', typeof DataLoader.caricaDati);
+console.log('- App.init test:', typeof App.init);
+console.log('- window.app test:', typeof window.app);
