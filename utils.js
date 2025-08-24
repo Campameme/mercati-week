@@ -323,6 +323,36 @@ const Utils = {
         const colonne = Object.keys(item);
         console.log('📋 Colonne disponibili:', colonne);
         
+        // CASO SPECIALE: Colonne concatenate nel Google Sheet
+        // Rileva se la prima colonna contiene tutti i comuni
+        if (colonne.length <= 10 && colonne[0] && colonne[0].includes('Bajardo')) {
+            console.log('🚨 Rilevate colonne concatenate, usando mapping per indice');
+            
+            // Mappiamo per posizione invece che per nome
+            const valori = Object.values(item);
+            
+            const dati = {
+                comune: valori[0] || null,      // Prima colonna = comune
+                evento: valori[1] || null,      // Seconda colonna = evento
+                tipologia: valori[2] || null,   // Terza colonna = tipologia
+                luogo: valori[3] || null,       // Quarta colonna = luogo
+                dataInizio: valori[4] || null,  // Quinta colonna = data inizio
+                dataFine: valori[5] || null,    // Sesta colonna = data fine
+                giornoRicorrente: valori[6] || null, // Settima colonna = giorno ricorrente
+                orario: valori[7] || null,      // Ottava colonna = orario
+                organizzatore: valori[8] || null, // Nona colonna = organizzatore
+                
+                // Manteniamo compatibilità
+                giorno: valori[6] || null,      // Alias per giornoRicorrente
+                mese: null,
+                settori: null
+            };
+            
+            console.log('✅ Dati validati (da indici):', dati);
+            return dati;
+        }
+        
+        // CASO NORMALE: Colonne separate correttamente
         const dati = {
             comune: this.estraiValore(item, ['Comune', 'comune']),
             tipologia: this.estraiValore(item, ['Tipologia', 'tipologia']),
@@ -340,7 +370,7 @@ const Utils = {
             settori: this.estraiValore(item, ['Settori merceologici', 'settori'])
         };
         
-        console.log('✅ Dati validati:', dati);
+        console.log('✅ Dati validati (da nomi):', dati);
         return dati;
     },
     
