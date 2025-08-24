@@ -161,6 +161,8 @@ async function caricaDatiFiereGoogleSheets() {
                 skipEmptyLines: true,
                 complete: (results) => {
                     console.log(`✅ Parsing fiere completato: ${results.data.length} righe`);
+                    console.log(`🔍 Prima riga fiere:`, results.data[0]);
+                    console.log(`🔍 Colonne disponibili:`, Object.keys(results.data[0]));
                     
                     // Filtra righe vuote e pulisci dati
                     fiere = results.data
@@ -172,6 +174,9 @@ async function caricaDatiFiereGoogleSheets() {
                         }));
                     
                     console.log(`🎯 Fiere valide: ${fiere.length}`);
+                    if (fiere.length > 0) {
+                        console.log(`🔍 Prima fiera valida:`, fiere[0]);
+                    }
                     resolve();
                 },
                 error: (error) => {
@@ -361,12 +366,12 @@ function creaDataMercatino(giorno, anno, mesi) {
     // Determina il giorno della settimana
     let giornoSettimana = -1;
     if (giorno.includes('domenica')) giornoSettimana = 0;
-    else if (giorno.includes('lunedì') || giorno.includes('lunedi')) giornoSettimana = 1;
-    else if (giorno.includes('martedì') || giorno.includes('martedi')) giornoSettimana = 2;
-    else if (giorno.includes('mercoledì') || giorno.includes('mercoledi')) giornoSettimana = 3;
-    else if (giorno.includes('giovedì') || giorno.includes('giovedi')) giornoSettimana = 4;
-    else if (giorno.includes('venerdì') || giorno.includes('venerdi')) giornoSettimana = 5;
-    else if (giorno.includes('sabato')) giornoSettimana = 6;
+    else if (giorno.includes('lunedì') || giorno.includes('lunedi') || giorno.includes('Lunedì') || giorno.includes('Lunedi')) giornoSettimana = 1;
+    else if (giorno.includes('martedì') || giorno.includes('martedi') || giorno.includes('Martedì') || giorno.includes('Martedi')) giornoSettimana = 2;
+    else if (giorno.includes('mercoledì') || giorno.includes('mercoledi') || giorno.includes('Mercoledì') || giorno.includes('Mercoledi')) giornoSettimana = 3;
+    else if (giorno.includes('giovedì') || giorno.includes('giovedi') || giorno.includes('Giovedì') || giorno.includes('Giovedi')) giornoSettimana = 4;
+    else if (giorno.includes('venerdì') || giorno.includes('venerdi') || giorno.includes('Venerdì') || giorno.includes('Venerdi')) giornoSettimana = 5;
+    else if (giorno.includes('sabato') || giorno.includes('Sabato')) giornoSettimana = 6;
     
     if (giornoSettimana === -1) {
         console.log(`❌ Giorno non riconosciuto: ${giorno}`);
@@ -417,6 +422,34 @@ function creaDataFiera(dataInizio, anno) {
         } else {
             console.log(`⚠️ Data fiera nel passato: ${data.toISOString().split('T')[0]}`);
             return null;
+        }
+    }
+    
+    // Gestisci formato "dal DD.MM.YYYY al DD.MM.YYYY"
+    if (primaData.includes('dal') && primaData.includes('al')) {
+        const match = primaData.match(/dal (\d+)\.(\d+)\.(\d+) al (\d+)\.(\d+)\.(\d+)/);
+        if (match) {
+            const [, giornoInizio, meseInizio, annoInizio, giornoFine, meseFine, annoFine] = match;
+            const dataInizio = new Date(parseInt(annoInizio), parseInt(meseInizio) - 1, parseInt(giornoInizio));
+            
+            if (dataInizio >= new Date()) {
+                console.log(`✅ Data fiera range generata: ${dataInizio.toISOString().split('T')[0]}`);
+                return dataInizio.toISOString().split('T')[0];
+            }
+        }
+    }
+    
+    // Gestisci formato "DD.MM.YYYY"
+    if (primaData.includes('.') && primaData.includes('2025')) {
+        const match = primaData.match(/(\d+)\.(\d+)\.(\d+)/);
+        if (match) {
+            const [, giorno, mese, anno] = match;
+            const data = new Date(parseInt(anno), parseInt(mese) - 1, parseInt(giorno));
+            
+            if (data >= new Date()) {
+                console.log(`✅ Data fiera punto generata: ${data.toISOString().split('T')[0]}`);
+                return data.toISOString().split('T')[0];
+            }
         }
     }
     
