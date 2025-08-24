@@ -1,186 +1,208 @@
 # 📅 Calendario Eventi - Mercatini e Fiere
 
-**Versione 3.0.0** - Calendario interattivo per mercatini e fiere della Liguria con integrazione Google Sheets in tempo reale.
+Un'applicazione web moderna e interattiva per visualizzare eventi (mercatini e fiere) in un calendario FullCalendar con filtri avanzati e sistema di preferiti.
 
-## 🚀 Caratteristiche Principali
+## 🚀 Caratteristiche
 
-- **📊 Calendario Interattivo**: Visualizzazione mensile, settimanale e lista eventi
-- **🔍 Filtri Avanzati**: Per comune, categoria merceologica e tipo evento
-- **⭐ Sistema Preferiti**: Salva i tuoi eventi preferiti localmente
-- **📍 Eventi Vicini**: Scopri cosa succede nelle prossime 2 settimane
-- **🔄 Dati in Tempo Reale**: Aggiornamento automatico da Google Sheets
-- **📱 Design Responsive**: Ottimizzato per tutti i dispositivi
-- **🟢 Status Online**: Indicatore di connessione in tempo reale
+### ✨ Funzionalità Principali
+- **Calendario Interattivo**: Visualizzazione mensile, settimanale e a lista degli eventi
+- **Filtri Avanzati**: Per comune, categoria e tipo di evento
+- **Sistema Preferiti**: Salvataggio locale degli eventi preferiti
+- **Eventi Vicini**: Visualizzazione dei prossimi 5 eventi
+- **Responsive Design**: Ottimizzato per desktop e mobile
 
-## 🛠️ Tecnologie Utilizzate
+### 🎯 Gestione Eventi
+- **Mercatini**: Supporto per ricorrenze settimanali e periodi specifici
+- **Fiere**: Gestione di eventi con date specifiche o periodi mensili
+- **Logica Ricorrenza**: 
+  - "ricorrente" = valido tutto l'anno
+  - Date specifiche = valido solo per quel periodo
 
+### 🔧 Tecnologie
 - **Frontend**: HTML5, CSS3, JavaScript ES6+
-- **Framework**: Bootstrap 5.3.2
-- **Calendario**: FullCalendar 6.1.10
-- **Parsing CSV**: PapaParse 5.4.1
-- **Hosting**: Netlify (deploy automatico)
-- **Dati**: Google Sheets (API gviz/tq)
+- **Librerie**: FullCalendar 6.1.10, Bootstrap 5.3.0, PapaParse 5.4.1
+- **Dati**: Google Sheets (CSV via gviz/tq)
+- **Storage**: localStorage per preferiti
 
 ## 📁 Struttura Progetto
 
 ```
-├── index.html          # Pagina principale ottimizzata
-├── style.css           # Stili CSS con variabili CSS e animazioni
-├── script.js           # Logica JavaScript completa
-├── package.json        # Configurazione progetto
-├── netlify.toml        # Configurazione Netlify
-├── .gitignore          # File da ignorare
-└── README.md           # Documentazione
+nuovo progetto dari/
+├── index.html          # File principale HTML
+├── style.css           # Stili CSS personalizzati
+├── config.js           # Configurazione e logging
+├── utils.js            # Utility per date e dati
+├── calendar.js         # Gestione calendario FullCalendar
+├── data-loader.js      # Caricamento e parsing dati
+├── app.js              # Logica principale dell'applicazione
+├── README.md           # Documentazione
+├── package.json        # Metadati progetto
+└── netlify.toml        # Configurazione Netlify
 ```
 
-## 🚀 Installazione e Utilizzo
+## 🛠️ Installazione e Utilizzo
 
-### **Opzione 1: Utilizzo Online (Raccomandato)**
-1. **Apri l'app**: [https://mercati-week.netlify.app](https://mercati-week.netlify.app)
-2. **Aspetta il caricamento** dei dati da Google Sheets
-3. **Usa i filtri** per trovare eventi specifici
-4. **Clicca sugli eventi** per vedere i dettagli
-5. **Clicca sui giorni** per vedere tutti gli eventi di quel giorno
+### 📋 Prerequisiti
+- Browser moderno con supporto ES6+
+- Accesso a Google Sheets
+- Server web locale o hosting online
 
-### **Opzione 2: Sviluppo Locale**
+### 🚀 Avvio Locale
 1. **Clona il repository**:
    ```bash
-   git clone https://github.com/Campameme/mercati-week.git
-   cd mercati-week
+   git clone <repository-url>
+   cd "nuovo progetto dari"
    ```
 
 2. **Avvia server locale**:
    ```bash
    python3 -m http.server 8000
+   # oppure
+   npx serve .
    ```
 
-3. **Apri nel browser**: `http://localhost:8000`
+3. **Apri nel browser**:
+   ```
+   http://localhost:8000
+   ```
 
-## 📊 Fonti Dati
+### 🌐 Deploy Online
+1. **Netlify** (raccomandato):
+   - Collega il repository GitHub
+   - Build settings: `publish = "."`
+   - Deploy automatico ad ogni push
 
-L'app si connette automaticamente a due Google Sheets:
+2. **Vercel**:
+   - Importa il repository
+   - Deploy automatico
 
-- **🛒 Mercatini**: [Link Google Sheets](https://docs.google.com/spreadsheets/d/1dGB3f47TrT_dVz5PsICci4JuoTWRBQAcPuXjDIYSE58/edit?usp=sharing)
-- **🎪 Fiere**: [Link Google Sheets](https://docs.google.com/spreadsheets/d/1oa6pz7U79YyD8hey2lANS-x6nMCHnaKBC2LtEIsMyTQ/edit?usp=sharing)
+3. **GitHub Pages**:
+   - Abilita GitHub Pages nel repository
+   - Source: branch main
 
-## 🎯 Funzionalità Principali
+## 📊 Configurazione Dati
 
-### **Calendario Interattivo**
-- Navigazione mensile/settimanale
-- Eventi colorati per tipo (🛒 Mercatini, 🎪 Fiere)
-- Click su eventi per dettagli completi
-- Click sui giorni per lista eventi giornaliera
+### 🔗 Google Sheets
+L'applicazione si connette a Google Sheets tramite l'endpoint `gviz/tq`:
 
-### **Sistema Filtri**
-- **🏘️ Comune**: Filtra per località specifica
-- **🏷️ Categoria**: Filtra per settore merceologico
-- **📋 Tipo**: Filtra per tipo di evento
+```javascript
+const GOOGLE_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/gviz/tq?tqx=out:csv&sheet=Foglio1';
+```
 
-### **Gestione Preferiti**
-- Salva eventi preferiti (senza login)
-- Sincronizzazione automatica locale
-- Lista dedicata sempre visibile
+### 📋 Struttura Dati Richiesta
+- **Comune**: Nome del comune
+- **Evento**: Nome dell'evento
+- **Tipologia**: Categoria dell'evento
+- **Giorno**: Giorno ricorrente (es: "sabato", "domenica")
+- **Data inizio**: "ricorrente" o DD/MM
+- **Data fine**: "ricorrente" o DD/MM
+- **Mese**: Mese specifico (es: "giugno", "agosto")
+- **Orario**: Orario di svolgimento
+- **Luogo**: Luogo di svolgimento
+- **Organizzatore**: Soggetto organizzatore
+- **Settori merceologici**: Settori per mercatini
 
-### **Eventi Vicini**
-- Prossimi 5 eventi nelle 2 settimane
-- Calcolo automatico giorni rimanenti
-- Aggiornamento in tempo reale
+## 🎨 Personalizzazione
 
-## 🔧 Configurazione Avanzata
+### 🎨 Temi e Colori
+Modifica le variabili CSS in `style.css`:
 
-### **Personalizzazione Google Sheets**
-1. **Copia i template** forniti
-2. **Aggiorna gli ID** in `script.js`
-3. **Rendi pubblici** i fogli di calcolo
-4. **Usa formato CSV** per compatibilità
+```css
+:root {
+    --primary-color: #007bff;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #17a2b8;
+}
+```
 
-### **Personalizzazione Stili**
-- **Variabili CSS**: Modifica colori e dimensioni in `style.css`
-- **Temi**: Cambia colori primari e secondari
-- **Responsive**: Ottimizzazioni per mobile e tablet
+### ⚙️ Configurazione
+Modifica le impostazioni in `config.js`:
 
-## 🚀 Deploy Online
+```javascript
+const CONFIG = {
+    GOOGLE_SHEETS_URL: 'your-sheets-url',
+    CALENDAR: {
+        MONTHS_TO_GENERATE: 12,
+        INITIAL_VIEW: 'dayGridMonth'
+    },
+    DEBUG: true
+};
+```
 
-### **Netlify (Raccomandato)**
-1. **Connetti repository** GitHub
-2. **Build settings**:
-   - Build command: `npm run build`
-   - Publish directory: `.`
-3. **Deploy automatico** ad ogni push
+## 🔍 Debug e Logging
 
-### **Vercel**
-1. **Importa progetto** da GitHub
-2. **Framework preset**: Static
-3. **Deploy automatico** configurato
+### 📝 Console Logging
+L'applicazione include logging dettagliato per il debug:
 
-### **GitHub Pages**
-1. **Abilita Pages** nelle impostazioni repository
-2. **Source**: Branch main
-3. **Deploy** automatico
+```javascript
+Logger.info('Messaggio informativo');
+Logger.success('Operazione completata');
+Logger.warning('Attenzione');
+Logger.error('Errore');
+Logger.debug('Dettagli debug');
+```
 
-## 📱 Compatibilità
+### 🐛 Risoluzione Problemi
 
-- **Browser**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
-- **Dispositivi**: Desktop, tablet, smartphone
-- **Risoluzioni**: 320px - 4K
-- **Connessioni**: 3G, 4G, 5G, WiFi
+#### Eventi non visibili
+1. Controlla la console del browser per errori
+2. Verifica la connessione a Google Sheets
+3. Controlla la struttura dei dati nel sheets
 
-## 🔄 Aggiornamenti
+#### Date non generate
+1. Verifica il formato delle date nel sheets
+2. Controlla la logica di ricorrenza
+3. Verifica i log di generazione date
 
-### **Automatici**
-- **Dati**: Aggiornamento in tempo reale da Google Sheets
-- **Deploy**: Automatico ad ogni commit su GitHub
+#### Filtri non funzionanti
+1. Controlla che i dati siano caricati correttamente
+2. Verifica la popolazione dei dropdown
+3. Controlla i log di aggiornamento filtri
 
-### **Manuali**
-- **Filtri**: Reset con pulsante "Ricarica Dati"
-- **Preferiti**: Gestione locale persistente
-- **Cache**: Pulizia automatica browser
+## 📱 Responsive Design
 
-## 🐛 Risoluzione Problemi
+L'applicazione è ottimizzata per:
+- **Desktop**: Layout a griglia con sidebar
+- **Tablet**: Layout adattivo con sidebar sotto
+- **Mobile**: Layout verticale ottimizzato
 
-### **Eventi Non Visibili**
-1. **Controlla console** browser per errori
-2. **Verifica connessione** internet
-3. **Ricarica dati** con pulsante dedicato
-4. **Controlla filtri** attivi
+## 🔒 Sicurezza
 
-### **Lentezza Caricamento**
-1. **Verifica connessione** Google Sheets
-2. **Controlla dimensioni** dataset
-3. **Usa filtri** per ridurre eventi
-4. **Aggiorna browser** all'ultima versione
+- **CORS**: Gestito tramite Google Sheets gviz/tq
+- **Storage**: Solo localStorage per preferiti
+- **Validazione**: Parsing sicuro dei dati CSV
+- **Sanitizzazione**: Pulizia dei dati in input
 
-## 📈 Performance e Ottimizzazioni
+## 🚀 Performance
 
-- **Lazy Loading**: Caricamento progressivo eventi
-- **Debouncing**: Ottimizzazione filtri in tempo reale
-- **Caching**: Memorizzazione locale preferiti
-- **Compressione**: CSS e JS ottimizzati
-- **CDN**: Librerie esterne da CDN affidabili
+- **Lazy Loading**: Caricamento asincrono dei dati
+- **Batch Processing**: Aggiunta eventi in batch
+- **Debouncing**: Ottimizzazione filtri
+- **Caching**: Salvataggio preferiti locale
 
 ## 🤝 Contributi
 
-1. **Fork** il repository
-2. **Crea branch** per feature: `git checkout -b feature/nuova-funzionalita`
-3. **Commit** modifiche: `git commit -m 'Aggiunta nuova funzionalità'`
-4. **Push** al branch: `git push origin feature/nuova-funzionalita`
-5. **Crea Pull Request**
+1. Fork del repository
+2. Crea un branch per la feature
+3. Commit delle modifiche
+4. Push al branch
+5. Crea una Pull Request
 
 ## 📄 Licenza
 
-Questo progetto è rilasciato sotto licenza **MIT**. Vedi il file `LICENSE` per dettagli.
+Questo progetto è rilasciato sotto licenza MIT.
 
-## 👨‍💻 Autore
+## 📞 Supporto
 
-**Emanuele Campanini** - [GitHub](https://github.com/Campameme)
-
-## 🌟 Ringraziamenti
-
-- **Google Sheets** per l'hosting dati
-- **FullCalendar** per la libreria calendario
-- **Bootstrap** per il framework CSS
-- **Netlify** per l'hosting gratuito
+Per supporto o domande:
+- Apri una issue su GitHub
+- Controlla la documentazione
+- Verifica i log di debug
 
 ---
 
-**⭐ Se ti piace questo progetto, lascia una stella su GitHub!**
+**Versione**: 4.0.0  
+**Ultimo aggiornamento**: Dicembre 2024  
+**Compatibilità**: Chrome 80+, Firefox 75+, Safari 13+, Edge 80+
