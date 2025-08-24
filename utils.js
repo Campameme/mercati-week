@@ -577,6 +577,12 @@ const DataLoader = {
             
             Logger.success('✅ Tutti i dati caricati');
             
+            // Nascondi indicatore di caricamento
+            const loadingText = document.querySelector('.loading-text');
+            if (loadingText) {
+                loadingText.style.display = 'none';
+            }
+            
             // Aggiorna UI
             FilterManager.aggiornaFiltri();
             this.aggiornaCalendario();
@@ -586,6 +592,13 @@ const DataLoader = {
             
         } catch (error) {
             Logger.error('❌ Errore durante il caricamento dati:', error);
+            
+            // Nascondi indicatore di caricamento anche in caso di errore
+            const loadingText = document.querySelector('.loading-text');
+            if (loadingText) {
+                loadingText.style.display = 'none';
+            }
+            
             throw error;
         }
     },
@@ -595,14 +608,31 @@ const DataLoader = {
         Logger.info('Caricamento eventi da Google Sheet...');
         
         try {
-            const response = await fetch(CONFIG.GOOGLE_SHEETS_URL);
+            // Aggiungi timestamp per evitare cache del browser
+            const timestamp = new Date().getTime();
+            const urlConCache = `${CONFIG.GOOGLE_SHEETS_URL}&_t=${timestamp}`;
+            
+            Logger.info(`📡 Richiesta dati: ${urlConCache}`);
+            const response = await fetch(urlConCache, {
+                cache: 'no-cache',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
             const data = await response.text();
-            Logger.info(`📊 Dati eventi ricevuti: ${data.length} caratteri`);
+            const timestamp = new Date().toLocaleTimeString();
+            Logger.info(`📊 Dati eventi ricevuti alle ${timestamp}: ${data.length} caratteri`);
+            
+            // Mostra hash dei primi caratteri per verificare che i dati siano diversi
+            const dataHash = data.substring(0, 100);
+            console.log(`🔍 Hash dati (primi 100 char): ${dataHash}`);
             
             return new Promise((resolve, reject) => {
                 Papa.parse(data, {
@@ -838,6 +868,13 @@ const App = {
     // Carica dati
     async caricaDati() {
         Logger.info('🚀 Avvio caricamento dati...');
+        
+        // Mostra indicatore di caricamento
+        const loadingText = document.querySelector('.loading-text');
+        if (loadingText) {
+            loadingText.textContent = '⏳ Aggiornamento dati da Google Sheets...';
+            loadingText.style.display = 'block';
+        }
         
         try {
             // Mostra loading
