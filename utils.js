@@ -162,7 +162,7 @@ const Utils = {
         // Caso 1: Giorno settimanale semplice (es: "mercoledì", "giovedì")
         const giornoSettimanale = giorni.findIndex(g => giorno.includes(g));
         if (giornoSettimanale !== -1 && !giorno.includes('°') && !giorno.includes('^') && !giorno.includes('prima') && !giorno.includes('ultima')) {
-            console.log(`📅 Giorno settimanale: ${giorni[giornoSettimanale]}`);
+            console.log(`📅 Giorno settimanale rilevato: "${giorno}" → ${giorni[giornoSettimanale]} (indice ${giornoSettimanale})`);
             return this.generaDateSettimanali(giornoSettimanale, dataInizio, dataFine);
         }
         
@@ -349,6 +349,16 @@ const Utils = {
             };
             
             console.log('✅ Dati validati (da indici):', dati);
+            
+            // Debug specifico per Imperia nel parsing
+            if (dati.comune && dati.comune.toLowerCase().includes('imperia')) {
+                console.log('🔍 IMPERIA RILEVATA NEL PARSING:', {
+                    comune: dati.comune,
+                    giornoRicorrente: dati.giornoRicorrente,
+                    valoriRaw: valori
+                });
+            }
+            
             return dati;
         }
         
@@ -822,7 +832,14 @@ const DataLoader = {
             
             // Debug specifico per Imperia
             if (dati.comune && dati.comune.toLowerCase().includes('imperia')) {
-                console.log('🎯 PROCESSANDO IMPERIA nel calendario:', dati);
+                console.log('🎯 PROCESSANDO IMPERIA nel calendario:', {
+                    comune: dati.comune,
+                    tipologia: dati.tipologia,
+                    dataInizio: dati.dataInizio,
+                    dataFine: dati.dataFine,
+                    giornoRicorrente: dati.giornoRicorrente,
+                    valoriGrezzi: Object.values(mercatino)
+                });
             }
             
             let date = null;
