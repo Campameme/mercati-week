@@ -646,8 +646,43 @@ const DataLoader = {
                     complete: (results) => {
                         Logger.success(`✅ Parsing eventi completato: ${results.data.length} righe`);
                         
-                        // Filtra e processa tutti gli eventi
-                        this.mercatini = results.data.filter((item, index) => {
+                        // 🔍 DEBUG: Analizza le prime righe per capire la struttura
+                        console.log('🔍 HEADER (prima riga):', results.data[0]);
+                        console.log('🔍 SECONDA riga:', results.data[1]);
+                        console.log('🔍 TERZA riga:', results.data[2]);
+                        console.log('🔍 Numero colonne nell\'header:', Object.keys(results.data[0] || {}).length);
+                        
+                        // Prova con delimitatore semicolon
+                        if (Object.keys(results.data[0] || {}).length < 5) {
+                            console.log('🔄 Troppo poche colonne, riprovo con delimitatore ;');
+                            Papa.parse(data, {
+                                header: true,
+                                delimiter: ';',
+                                skipEmptyLines: true,
+                                complete: (results2) => {
+                                    console.log('🔍 Con delimitatore ;, header:', results2.data[0]);
+                                    console.log('🔍 Con delimitatore ;, colonne:', Object.keys(results2.data[0] || {}).length);
+                                    this.processResults(results2.data.length > results.data.length ? results2 : results);
+                                    resolve();
+                                }
+                            });
+                            return;
+                        }
+                        
+                        this.processResults(results);
+                    },
+                    error: (error) => {
+                        Logger.error('Errore parsing CSV:', error);
+                        reject(error);
+                    }
+                });
+            });
+        },
+        
+        // Processa i risultati del parsing
+        processResults(results) {
+            // Filtra e processa tutti gli eventi
+            this.mercatini = results.data.filter((item, index) => {
                             const dati = Utils.validaDati(item);
                             console.log(`🔍 Processando item ${index + 1}:`, dati);
                             
@@ -679,13 +714,7 @@ const DataLoader = {
                         
                         Logger.success(`Eventi validi: ${this.mercatini.length}`);
                         resolve();
-                    },
-                    error: (error) => {
-                        Logger.error(`Errore parsing mercatini: ${error.message}`);
-                        reject(error);
-                    }
-                });
-            });
+            },
             
         } catch (error) {
             Logger.error(`Errore caricamento mercatini: ${error.message}`);
@@ -839,8 +868,7 @@ const DataLoader = {
         setTimeout(() => {
             const totalEvents = CalendarManager.getEventCount();
             console.log('🎯 Riepilogo finale caricamento:');
-            console.log(`- Mercatini aggiunti: ${eventiAggiunti}`);
-            console.log(`- Fiere aggiunte: ${fiereAggiunte}`);
+            console.log(`- Eventi aggiunti: ${eventiAggiunti || 0}`);
             console.log(`- Eventi totali nel calendario: ${totalEvents}`);
             
             if (totalEvents === 0) {
