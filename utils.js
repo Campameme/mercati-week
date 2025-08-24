@@ -148,9 +148,7 @@ const Utils = {
         const dateGenerate = this.parseGiornoRicorrente(giornoRicorrente, dataPartenza, dataLimite);
         
         console.log(`📊 Generate ${dateGenerate.length} date per ${comune}`);
-        const dateFormatted = dateGenerate.map(d => d.toISOString().split('T')[0]);
-        console.log(`✅ Date finali per ${comune}:`, dateFormatted.slice(0, 5), dateFormatted.length > 5 ? `... (${dateFormatted.length} totali)` : '');
-        return dateFormatted;
+        return dateGenerate.map(d => d.toISOString().split('T')[0]);
     },
     
     // Nuova funzione per interpretare il "giorno ricorrente"
@@ -521,16 +519,12 @@ const CalendarManager = {
     addEvent(evento) {
         if (this.calendar) {
             try {
-                console.log(`🔄 Tentativo aggiunta evento:`, evento.title, evento.start);
                 this.calendar.addEvent(evento);
-                console.log(`✅ Evento aggiunto: ${evento.title} - ${evento.start}`);
                 return true;
             } catch (error) {
-                console.error(`❌ Errore aggiunta evento: ${error.message}`, evento);
+                Logger.error(`Errore aggiunta evento: ${error.message}`);
                 return false;
             }
-        } else {
-            console.error(`❌ Calendario non inizializzato per evento: ${evento.title}`);
         }
         return false;
     },
@@ -705,6 +699,7 @@ const DataLoader = {
                         }
                         
                         this.processResults(results);
+                        resolve();
                     },
                     error: (error) => {
                         Logger.error('Errore parsing CSV:', error);
@@ -886,10 +881,8 @@ const DataLoader = {
                     }
                 }));
                 
-                console.log(`➕ Aggiungendo ${eventi.length} eventi per ${dati.comune}`);
                 CalendarManager.addEvents(eventi);
                 eventiAggiunti += eventi.length;
-                console.log(`✅ Totale eventi aggiunti finora: ${eventiAggiunti}`);
             }
         });
         
