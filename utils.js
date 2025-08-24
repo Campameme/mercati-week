@@ -415,8 +415,11 @@ const CalendarManager = {
             eventClick: (info) => this.onEventClick(info.event),
             dateClick: (info) => this.onDayClick(info.dateStr),
             eventClassNames: (arg) => this.getEventClassNames(arg),
-            dayMaxEvents: false, // Mostra tutti gli eventi per giorno
-            eventDisplay: 'block', // Mostra eventi come blocchi
+            dayMaxEvents: 4, // Mostra max 4 eventi + link "altri"
+            moreLinkClick: this.onMoreLinkClick.bind(this),
+            moreLinkText: function(num) {
+                return `+${num} altri`;
+            },
             eventTimeFormat: {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -455,6 +458,12 @@ const CalendarManager = {
     onDayClick(data) {
         Logger.debug('Click su giorno:', data);
         EventManager.mostraEventiGiorno(data);
+    },
+    
+    // Gestisce il click su "+N altri"
+    onMoreLinkClick(info) {
+        Logger.debug('Click su più eventi:', info.date);
+        EventManager.mostraEventiGiorno(info.date.toISOString().split('T')[0]);
     },
     
     // Restituisce le classi CSS per gli eventi
@@ -1066,19 +1075,39 @@ const EventManager = {
                     <div class="event-details">
                         ${dettagli}
                     </div>
-                    <div class="event-actions">
-                        <button class="btn btn-sm btn-primary" onclick="EventManager.mostraDettagliEvento(${JSON.stringify(evento)})">
-                            📋 Dettagli
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="EventManager.togglePreferito('${evento.id}')">
-                            💔 Rimuovi
-                        </button>
-                    </div>
+                                            <div class="event-actions">
+                            <button class="btn btn-sm btn-primary" onclick="EventManager.mostraDettagliEventoById('${evento.id}')">
+                                📋 Dettagli
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="EventManager.togglePreferito('${evento.id}')">
+                                💔 Rimuovi
+                            </button>
+                        </div>
                 </div>
             `;
         });
         
         lista.innerHTML = html;
+    },
+    
+    // Mostra dettagli evento tramite ID
+    mostraDettagliEventoById(eventoId) {
+        // Trova l'evento nell'array dei dati caricati
+        const evento = DataLoader.mercatini.find(item => {
+            const dati = Utils.validaDati(item);
+            return eventoId.includes(dati.comune);
+        });
+        
+        if (!evento) {
+            console.error('Evento non trovato:', eventoId);
+            return;
+        }
+        
+        // Ottieni informazioni aggiuntive dal calendario
+        const calendarEvent = CalendarManager.calendar.getEvents().find(e => e.id === eventoId);
+        if (calendarEvent) {
+            this.mostraDettagliEvento(calendarEvent);
+        }
     },
     
     // Mostra dettagli evento
@@ -1089,10 +1118,14 @@ const EventManager = {
         
         title.textContent = evento.title;
         
+        // Ottieni il giorno della settimana
+        const dataEvento = new Date(evento.start);
+        const giornoSettimana = dataEvento.toLocaleDateString('it-IT', { weekday: 'long' });
+        
         let html = `
             <div class="event-detail-row">
                 <span class="event-detail-label">📅 Data:</span>
-                <span class="event-detail-value">${Utils.formattaData(evento.start)}</span>
+                <span class="event-detail-value">${Utils.formattaData(evento.start)} (${giornoSettimana})</span>
             </div>
             <div class="event-detail-row">
                 <span class="event-detail-label">🏘️ Comune:</span>
@@ -1151,7 +1184,9 @@ const EventManager = {
         const title = document.getElementById('dailyModalTitle');
         const body = document.getElementById('dailyModalBody');
         
-        title.textContent = `Eventi del ${Utils.formattaData(data)}`;
+        const dataObj = new Date(data);
+        const giornoSettimana = dataObj.toLocaleDateString('it-IT', { weekday: 'long' });
+        title.textContent = `Eventi di ${giornoSettimana} ${Utils.formattaData(data)}`;
         
         const eventiGiorno = CalendarManager.getEvents().filter(evento => 
             evento.start.toISOString().split('T')[0] === data
@@ -1161,7 +1196,7 @@ const EventManager = {
             body.innerHTML = '<p class="text-muted">Nessun evento per questo giorno</p>';
         } else {
             let html = '';
-            eventiGiorno.forEach(evento => {
+            eventiGiorno.forEach((evento, index) => {
                 let dettagli = `📍 ${evento.extendedProps.comune}`;
                 
                 if (evento.extendedProps.tipologia && evento.extendedProps.tipologia !== 'N/A') {
@@ -1177,23 +1212,36 @@ const EventManager = {
                 }
                 
                 html += `
-                    <div class="event-item">
-                        <div class="event-title">${evento.title}</div>
-                        <div class="event-details">
-                            ${dettagli}
-                        </div>
-                        <div class="event-actions">
-                            <button class="btn btn-sm btn-primary" onclick="EventManager.mostraDettagliEvento(${JSON.stringify(evento)})">
-                                📋 Dettagli
-                            </button>
-                            <button class="btn btn-sm btn-success" onclick="EventManager.togglePreferito('${evento.id}')">
-                                ${this.isPreferito(evento.id) ? '💔 Rimuovi' : '❤️ Aggiungi'}
-                            </button>
+                    <div class="event-item border rounded p-3 mb-3 ${index % 2 === 0 ? 'bg-light' : ''}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="event-title h6 mb-2">${evento.title}</div>
+                                <div class="event-details">
+                                    <small class="text-muted">${dettagli}</small>
+                                </div>
+                            </div>
+                            <div class="btn-group-vertical ms-3" role="group">
+                                <button class="btn btn-sm btn-outline-primary mb-1" onclick="EventManager.mostraDettagliEventoById('${evento.id}')">
+                                    📋 Dettagli
+                                </button>
+                                <button class="btn btn-sm ${this.isPreferito(evento.id) ? 'btn-outline-danger' : 'btn-outline-success'}" onclick="EventManager.togglePreferito('${evento.id}')">
+                                    ${this.isPreferito(evento.id) ? '💔 Rimuovi' : '❤️ Aggiungi'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
             });
-            body.innerHTML = html;
+            // Aggiungi header con conteggio e rendi scrollabile
+            const finalHtml = `
+                <div class="alert alert-info mb-3">
+                    <strong>${eventiGiorno.length}</strong> evento${eventiGiorno.length > 1 ? 'i' : ''} trovato${eventiGiorno.length > 1 ? 'i' : ''}
+                </div>
+                <div style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
+                    ${html}
+                </div>
+            `;
+            body.innerHTML = finalHtml;
         }
         
         modal.show();
@@ -1228,7 +1276,7 @@ const EventManager = {
                             ${dettagli}
                         </div>
                         <div class="event-actions">
-                            <button class="btn btn-sm btn-primary" onclick="EventManager.mostraDettagliEvento(${JSON.stringify(evento)})">
+                            <button class="btn btn-sm btn-primary" onclick="EventManager.mostraDettagliEventoById('${evento.id}')">
                                 📋 Dettagli
                             </button>
                             <button class="btn btn-sm btn-success" onclick="EventManager.togglePreferito('${evento.id}')">
