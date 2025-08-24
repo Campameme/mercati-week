@@ -154,7 +154,7 @@ const Utils = {
                 dateGenerate.map(d => d.toLocaleDateString())
         );
         
-        return dateGenerate.map(d => d.toISOString().split('T')[0]);
+        return dateGenerate.map(d => Utils.dateToLocalISOString(d));
     },
     
     // Nuova funzione per interpretare il "giorno ricorrente"
@@ -296,7 +296,7 @@ const Utils = {
                 if (!isNaN(giorno) && !isNaN(mese)) {
                     const data = new Date(anno, parseInt(mese) - 1, parseInt(giorno));
                     if (data >= new Date()) {
-                        return data.toISOString().split('T')[0];
+                        return Utils.dateToLocalISOString(data);
                     }
                 }
             }
@@ -311,7 +311,7 @@ const Utils = {
                     const annoUsato = annoData && !isNaN(annoData) ? parseInt(annoData) : anno;
                     const data = new Date(annoUsato, parseInt(mese) - 1, parseInt(giorno));
                     if (data >= new Date()) {
-                        return data.toISOString().split('T')[0];
+                        return Utils.dateToLocalISOString(data);
                     }
                 }
             }
@@ -327,7 +327,7 @@ const Utils = {
             if (dataPulita.toLowerCase().includes(meseNome)) {
                 const data = new Date(anno, meseNum, 1);
                 if (data >= new Date()) {
-                    return data.toISOString().split('T')[0];
+                    return Utils.dateToLocalISOString(data);
                 }
             }
         }
@@ -422,6 +422,14 @@ const Utils = {
     // Formatta data per visualizzazione
     formattaData(data) {
         return new Date(data).toLocaleDateString('it-IT');
+    },
+
+    // Converte Date in formato YYYY-MM-DD senza problemi di timezone
+    dateToLocalISOString(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     },
     
     // Genera ID univoco per evento
@@ -523,7 +531,7 @@ const CalendarManager = {
     // Gestisce il click su "+N altri"
     onMoreLinkClick(info) {
         Logger.debug('Click su più eventi:', info.date);
-        EventManager.mostraEventiGiorno(info.date.toISOString().split('T')[0]);
+        EventManager.mostraEventiGiorno(Utils.dateToLocalISOString(info.date));
     },
     
     // Restituisce le classi CSS per gli eventi
@@ -682,7 +690,13 @@ const DataLoader = {
             
             Logger.info(`📡 Richiesta dati: ${urlConCache}`);
             const response = await fetch(urlConCache, {
-                cache: 'no-cache'
+                method: 'GET',
+                cache: 'no-cache',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
             });
             
             if (!response.ok) {
@@ -694,8 +708,14 @@ const DataLoader = {
             Logger.info(`📊 Dati eventi ricevuti alle ${timeReceived}: ${data.length} caratteri`);
             
             // Mostra hash dei primi caratteri per verificare che i dati siano diversi
-            const dataHash = data.substring(0, 100);
-            console.log(`🔍 Hash dati (primi 100 char): ${dataHash}`);
+            const dataHash = data.substring(0, 200);
+            console.log(`🔍 Hash dati (primi 200 char): ${dataHash}`);
+            
+            // Debug dettagliato per capire se i dati sono aggiornati
+            console.log(`🕒 Timestamp richiesta: ${timestamp}`);
+            console.log(`📡 URL finale: ${urlConCache}`);
+            console.log(`📊 Lunghezza dati: ${data.length} caratteri`);
+            console.log(`🔢 Response headers:`, Object.fromEntries(response.headers.entries()));
             
             return new Promise((resolve, reject) => {
                 Papa.parse(data, {
@@ -1228,7 +1248,7 @@ const EventManager = {
                 // Crea un evento fittizio per mostrare i dettagli
                 const fakeEvent = {
                     title: `${evento.comune || 'Evento'}`,
-                    start: new Date().toISOString().split('T')[0],
+                    start: Utils.dateToLocalISOString(new Date()),
                     extendedProps: Utils.validaDati(evento)
                 };
                 this.mostraDettagliEvento(fakeEvent);
@@ -1317,7 +1337,7 @@ const EventManager = {
         // Otteniamo gli eventi dal calendario FullCalendar
         const eventiCalendario = CalendarManager.calendar ? CalendarManager.calendar.getEvents() : [];
         const eventiGiorno = eventiCalendario.filter(evento => {
-            const eventoData = evento.start.toISOString().split('T')[0];
+            const eventoData = Utils.dateToLocalISOString(evento.start);
             return eventoData === data;
         });
         
