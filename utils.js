@@ -69,67 +69,164 @@ console.log('🔧 Definizione Utils...');
 
 // Utility per la gestione delle date e dati
 const Utils = {
-    // Genera date per mercatini ricorrenti
-    generaDateMercatino(giorno, anno, mesi, dataInizio = null, dataFine = null) {
-        if (!giorno) return null;
+    // Genera date per mercatini ricorrenti - NUOVA LOGICA per struttura aggiornata
+    generaDateMercatino(dati, anno = new Date().getFullYear(), mesi = CONFIG.CALENDAR.MONTHS_TO_GENERATE) {
+        const { dataInizio, dataFine, giornoRicorrente, comune } = dati;
         
-        // Pulisci i dati
-        const giornoPulito = giorno.toString().trim().replace(/\r/g, '');
+        console.log(`📅 Generazione date per ${comune}:`, { dataInizio, dataFine, giornoRicorrente });
+        
+        // Verifica che abbiamo il giorno ricorrente
+        if (!giornoRicorrente) {
+            console.log('⚠️ Nessun giorno ricorrente specificato');
+            return [];
+        }
         
         const date = [];
-        let dataInizioCalcolo = new Date(anno, 0, 1);
-        let dataFineCalcolo = new Date(anno, mesi, 0);
+        const oggi = new Date();
         
-        // Se ci sono date specifiche, usa quelle come limite
-        if (dataInizio && dataInizio !== 'ricorrente') {
-            try {
-                const [giornoInizio, meseInizio] = dataInizio.split('/');
-                if (giornoInizio && meseInizio) {
-                    dataInizioCalcolo = new Date(anno, parseInt(meseInizio) - 1, parseInt(giornoInizio));
+        // Determina il periodo di validità
+        let dataPartenza, dataLimite;
+        
+        if (dataInizio === 'ricorrente' && dataFine === 'ricorrente') {
+            // Valido tutto l'anno - generiamo date per i prossimi mesi
+            console.log('✅ Evento ricorrente tutto l\'anno');
+            dataPartenza = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+            dataLimite = new Date(oggi.getFullYear(), oggi.getMonth() + mesi, 0);
+        } else {
+            // Valido solo per periodo specifico
+            console.log('📅 Evento con periodo limitato');
+            
+            if (dataInizio && dataInizio !== 'ricorrente') {
+                const [giornoI, meseI] = dataInizio.split('/').map(Number);
+                if (giornoI && meseI) {
+                    dataPartenza = new Date(anno, meseI - 1, giornoI);
                 }
-            } catch (error) {
-                Logger.warning(`Errore parsing data inizio: ${dataInizio}`);
+            } else {
+                dataPartenza = new Date(anno, 0, 1); // Inizio anno
+            }
+            
+            if (dataFine && dataFine !== 'ricorrente') {
+                const [giornoF, meseF] = dataFine.split('/').map(Number);
+                if (giornoF && meseF) {
+                    dataLimite = new Date(anno, meseF - 1, giornoF);
+                }
+            } else {
+                dataLimite = new Date(anno, 11, 31); // Fine anno
             }
         }
         
-        if (dataFine && dataFine !== 'ricorrente') {
-            try {
-                const [giornoFine, meseFine] = dataFine.split('/');
-                if (giornoFine && meseFine) {
-                    dataFineCalcolo = new Date(anno, parseInt(meseFine) - 1, parseInt(giornoFine));
-                }
-            } catch (error) {
-                Logger.warning(`Errore parsing data fine: ${dataFine}`);
-            }
+        console.log(`📅 Periodo: da ${dataPartenza.toLocaleDateString()} a ${dataLimite.toLocaleDateString()}`);
+        
+        // Analizza il giorno ricorrente e genera le date
+        const dateGenerate = this.parseGiornoRicorrente(giornoRicorrente, dataPartenza, dataLimite);
+        
+        console.log(`📊 Generate ${dateGenerate.length} date per ${comune}`);
+        return dateGenerate.map(d => d.toISOString().split('T')[0]);
+    },
+    
+    // Nuova funzione per interpretare il "giorno ricorrente"
+    parseGiornoRicorrente(giornoRicorrente, dataInizio, dataFine) {
+        const giorno = giornoRicorrente.toLowerCase().trim();
+        const date = [];
+        
+        // Giorni della settimana
+        const giorni = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
+        
+        // Caso 1: Giorno settimanale semplice (es: "mercoledì", "giovedì")
+        const giornoSettimanale = giorni.findIndex(g => giorno.includes(g));
+        if (giornoSettimanale !== -1 && !giorno.includes('°') && !giorno.includes('^') && !giorno.includes('prima') && !giorno.includes('ultima')) {
+            console.log(`📅 Giorno settimanale: ${giorni[giornoSettimanale]}`);
+            return this.generaDateSettimanali(giornoSettimanale, dataInizio, dataFine);
         }
         
-        // Determina il giorno della settimana
-        let giornoSettimana = -1;
-        if (giornoPulito.includes('domenica')) giornoSettimana = 0;
-        else if (giornoPulito.includes('lunedì') || giornoPulito.includes('lunedi') || giornoPulito.includes('Lunedì') || giornoPulito.includes('Lunedi')) giornoSettimana = 1;
-        else if (giornoPulito.includes('martedì') || giornoPulito.includes('martedi') || giornoPulito.includes('Martedì') || giornoPulito.includes('Martedi')) giornoSettimana = 2;
-        else if (giornoPulito.includes('mercoledì') || giornoPulito.includes('mercoledi') || giornoPulito.includes('Mercoledì') || giornoPulito.includes('Mercoledi')) giornoSettimana = 3;
-        else if (giornoPulito.includes('giovedì') || giornoPulito.includes('giovedi') || giornoPulito.includes('Giovedì') || giornoPulito.includes('Giovedi')) giornoSettimana = 4;
-        else if (giornoPulito.includes('venerdì') || giornoPulito.includes('venerdi') || giornoPulito.includes('Venerdì') || giornoPulito.includes('Venerdi')) giornoSettimana = 5;
-        else if (giornoPulito.includes('sabato') || giornoPulito.includes('Sabato')) giornoSettimana = 6;
-        
-        if (giornoSettimana === -1) {
-            Logger.error(`Giorno non riconosciuto: ${giornoPulito}`);
-            return null;
+        // Caso 2: Giorni mensili ordinali (es: "2^ domenica del mese", "3^ sabato del mese")
+        const ordinaleMatch = giorno.match(/(\d+)[°^]\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)/);
+        if (ordinaleMatch) {
+            const ordinale = parseInt(ordinaleMatch[1]);
+            const giornoDellaSettimana = giorni.indexOf(ordinaleMatch[2]);
+            console.log(`📅 ${ordinale}° ${ordinaleMatch[2]} del mese`);
+            return this.generaDateMensili(ordinale, giornoDellaSettimana, dataInizio, dataFine);
         }
         
-        // Trova il primo giorno della settimana a partire dalla data inizio
-        let data = new Date(dataInizioCalcolo);
-        while (data.getDay() !== giornoSettimana) {
+        // Caso 3: Prima/Ultima (es: "prima domenica", "ultima domenica")
+        const primaMatch = giorno.match(/prima\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)/);
+        const ultimaMatch = giorno.match(/ultima?\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)/);
+        
+        if (primaMatch) {
+            const giornoDellaSettimana = giorni.indexOf(primaMatch[1]);
+            console.log(`📅 Prima ${primaMatch[1]} del mese`);
+            return this.generaDateMensili(1, giornoDellaSettimana, dataInizio, dataFine);
+        }
+        
+        if (ultimaMatch) {
+            const giornoDellaSettimana = giorni.indexOf(ultimaMatch[1]);
+            console.log(`📅 Ultima ${ultimaMatch[1]} del mese`);
+            return this.generaDateMensili(-1, giornoDellaSettimana, dataInizio, dataFine);
+        }
+        
+        // Caso 4: Complessi (gestiremo caso per caso)
+        console.log(`⚠️ Formato giorno ricorrente non riconosciuto: "${giornoRicorrente}"`);
+        return [];
+    },
+    
+    // Genera date settimanali
+    generaDateSettimanali(giornoSettimana, dataInizio, dataFine) {
+        const date = [];
+        let data = new Date(dataInizio);
+        
+        // Trova il primo giorno della settimana nel periodo
+        while (data.getDay() !== giornoSettimana && data <= dataFine) {
             data.setDate(data.getDate() + 1);
         }
         
-        // Genera date per il periodo specificato
-        while (data <= dataFineCalcolo) {
-            if (data >= new Date()) {
-                date.push(data.toISOString().split('T')[0]);
-            }
+        // Aggiungi tutte le occorrenze settimanali
+        while (data <= dataFine) {
+            date.push(new Date(data));
             data.setDate(data.getDate() + 7);
+        }
+        
+        return date;
+    },
+    
+    // Genera date mensili (1°, 2°, 3°, ultimo)
+    generaDateMensili(ordinale, giornoSettimana, dataInizio, dataFine) {
+        const date = [];
+        
+        // Itera su ogni mese nel periodo
+        let data = new Date(dataInizio.getFullYear(), dataInizio.getMonth(), 1);
+        const fineData = new Date(dataFine.getFullYear(), dataFine.getMonth(), 1);
+        
+        while (data <= fineData) {
+            let giornoTarget;
+            
+            if (ordinale === -1) {
+                // Ultimo giorno della settimana del mese
+                giornoTarget = new Date(data.getFullYear(), data.getMonth() + 1, 0); // Ultimo giorno del mese
+                while (giornoTarget.getDay() !== giornoSettimana) {
+                    giornoTarget.setDate(giornoTarget.getDate() - 1);
+                }
+            } else {
+                // N-esimo giorno della settimana del mese
+                giornoTarget = new Date(data.getFullYear(), data.getMonth(), 1);
+                while (giornoTarget.getDay() !== giornoSettimana) {
+                    giornoTarget.setDate(giornoTarget.getDate() + 1);
+                }
+                giornoTarget.setDate(giornoTarget.getDate() + (ordinale - 1) * 7);
+                
+                // Verifica che sia ancora nello stesso mese
+                if (giornoTarget.getMonth() !== data.getMonth()) {
+                    data.setMonth(data.getMonth() + 1);
+                    continue;
+                }
+            }
+            
+            // Aggiungi solo se è nel range
+            if (giornoTarget >= dataInizio && giornoTarget <= dataFine) {
+                date.push(new Date(giornoTarget));
+            }
+            
+            // Prossimo mese
+            data.setMonth(data.getMonth() + 1);
         }
         
         return date;
@@ -189,21 +286,43 @@ const Utils = {
         return null;
     },
     
-    // Pulisci e valida i dati
+    // Pulisci e valida i dati - AGGIORNATO per nuova struttura Google Sheet
     validaDati(item) {
-        return {
-            comune: item.Comune && item.Comune.trim(),
-            evento: item.Evento && item.Evento.trim(),
-            tipologia: item.Tipologia && item.Tipologia.trim(),
-            giorno: item.Giorno && item.Giorno.trim(),
-            dataInizio: item['Data inizio'] && item['Data inizio'].trim(),
-            dataFine: item['Data fine'] && item['Data fine'].trim(),
-            mese: item.Mese && item.Mese.trim(),
-            orario: item.Orario || item['Orario di svolgimento'],
-            luogo: item.Luogo || item['Luogo di svolgimento'],
-            organizzatore: item.Organizzatore || item['Soggetto organizzatore'],
-            settori: item['Settori merceologici']
+        console.log('🔍 Validazione dati item:', item);
+        
+        // Mappatura colonne per la nuova struttura
+        const colonne = Object.keys(item);
+        console.log('📋 Colonne disponibili:', colonne);
+        
+        const dati = {
+            comune: this.estraiValore(item, ['Comune', 'comune']),
+            tipologia: this.estraiValore(item, ['Tipologia', 'tipologia']),
+            dataInizio: this.estraiValore(item, ['Data inizio', 'data inizio', 'dataInizio']),
+            dataFine: this.estraiValore(item, ['Data fine', 'data fine', 'dataFine']),
+            giornoRicorrente: this.estraiValore(item, ['Giorno ricorrente', 'giorno ricorrente', 'giornoRicorrente']),
+            orario: this.estraiValore(item, ['Orario', 'orario', 'Orario di svolgimento']),
+            organizzatore: this.estraiValore(item, ['Organizzatore', 'organizzatore', 'Soggetto organizzatore']),
+            
+            // Manteniamo compatibilità con vecchia struttura
+            evento: this.estraiValore(item, ['Evento', 'evento']),
+            giorno: this.estraiValore(item, ['Giorno', 'giorno']),
+            mese: this.estraiValore(item, ['Mese', 'mese']),
+            luogo: this.estraiValore(item, ['Luogo', 'luogo', 'Luogo di svolgimento']),
+            settori: this.estraiValore(item, ['Settori merceologici', 'settori'])
         };
+        
+        console.log('✅ Dati validati:', dati);
+        return dati;
+    },
+    
+    // Helper per estrarre valori da possibili nomi di colonna
+    estraiValore(item, possibiliNomi) {
+        for (const nome of possibiliNomi) {
+            if (item[nome] !== undefined && item[nome] !== null && String(item[nome]).trim() !== '') {
+                return String(item[nome]).trim();
+            }
+        }
+        return null;
     },
     
     // Controlla se è online
@@ -424,11 +543,8 @@ const DataLoader = {
         Logger.info('🚀 Avvio caricamento dati...');
         
         try {
-            // Carica entrambi i dataset in parallelo
-            await Promise.all([
-                this.caricaMercatini(),
-                this.caricaFiere()
-            ]);
+            // Carica tutti gli eventi dal singolo Google Sheet
+            await this.caricaMercatini();
             
             Logger.success('✅ Tutti i dati caricati');
             
@@ -445,9 +561,9 @@ const DataLoader = {
         }
     },
     
-    // Carica mercatini da Google Sheets
+    // Carica tutti gli eventi da Google Sheets (mercatini e fiere)
     async caricaMercatini() {
-        Logger.info('Caricamento mercatini...');
+        Logger.info('Caricamento eventi da Google Sheet...');
         
         try {
             const response = await fetch(CONFIG.GOOGLE_SHEETS_URL);
@@ -457,7 +573,7 @@ const DataLoader = {
             }
             
             const data = await response.text();
-            Logger.info(`📊 Dati mercatini ricevuti: ${data.length} caratteri`);
+            Logger.info(`📊 Dati eventi ricevuti: ${data.length} caratteri`);
             
             return new Promise((resolve, reject) => {
                 Papa.parse(data, {
@@ -465,24 +581,27 @@ const DataLoader = {
                     delimiter: ',',
                     skipEmptyLines: true,
                     complete: (results) => {
-                        Logger.success(`✅ Parsing mercatini completato: ${results.data.length} righe`);
+                        Logger.success(`✅ Parsing eventi completato: ${results.data.length} righe`);
                         
-                        // Filtra solo i mercatini
+                        // Filtra e processa tutti gli eventi
                         this.mercatini = results.data.filter(item => {
                             const dati = Utils.validaDati(item);
+                            console.log('🔍 Processando item:', dati);
                             
-                            // Verifica che sia un mercatino
-                            const isMercatino = (dati.evento && dati.evento.toLowerCase().includes('mercatino')) ||
-                                               (dati.tipologia && dati.tipologia.toLowerCase().includes('mercatino'));
+                            // Verifica che abbia i campi necessari base
+                            const hasRequiredFields = dati.comune && dati.tipologia && dati.giornoRicorrente;
                             
-                            // Verifica che abbia i campi necessari
-                            const hasRequiredFields = dati.comune && 
-                                                    (dati.giorno || dati.dataInizio || dati.mese);
+                            if (!hasRequiredFields) {
+                                console.log('⚠️ Mancano campi richiesti per:', dati.comune);
+                                return false;
+                            }
                             
-                            return isMercatino && hasRequiredFields;
+                            // Tutti gli eventi sono validi (mercatini e fiere sono nella stessa tabella ora)
+                            console.log('✅ Evento valido:', dati.comune, '-', dati.tipologia);
+                            return true;
                         });
                         
-                        Logger.success(`Mercatini validi: ${this.mercatini.length}`);
+                        Logger.success(`Eventi validi: ${this.mercatini.length}`);
                         resolve();
                     },
                     error: (error) => {
@@ -569,9 +688,9 @@ const DataLoader = {
             
             let date = null;
             
-            // Prova prima con Giorno (per ricorrenze)
-            if (dati.giorno) {
-                date = Utils.generaDateMercatino(dati.giorno, anno, CONFIG.CALENDAR.MONTHS_TO_GENERATE, dati.dataInizio, dati.dataFine);
+            // Usa la nuova logica basata su giornoRicorrente
+            if (dati.giornoRicorrente) {
+                date = Utils.generaDateMercatino(dati, anno, CONFIG.CALENDAR.MONTHS_TO_GENERATE);
             }
             
             // Se non funziona, prova con Data inizio
@@ -591,20 +710,27 @@ const DataLoader = {
             }
             
             if (date && date.length > 0) {
+                // Determina tipo e colore basandosi sulla tipologia
+                const isMercatino = dati.tipologia && dati.tipologia.toLowerCase().includes('mercatino');
+                const iconaEvento = isMercatino ? '🛒' : '🎪';
+                const coloreEvento = isMercatino ? CONFIG.COLORS.MERCATINO : CONFIG.COLORS.FIERA;
+                const tipoEvento = isMercatino ? 'mercatino' : 'fiera';
+                
                 const eventi = date.map((dataSingola, index) => ({
-                    id: `mercatino_${dati.comune}_${dataSingola}_${index}`,
-                    title: `🛒 ${dati.comune}`,
+                    id: `${tipoEvento}_${dati.comune}_${dataSingola}_${index}`,
+                    title: `${iconaEvento} ${dati.comune}`,
                     start: dataSingola,
                     end: dataSingola,
-                    backgroundColor: CONFIG.COLORS.MERCATINO,
-                    borderColor: CONFIG.COLORS.MERCATINO,
+                    backgroundColor: coloreEvento,
+                    borderColor: coloreEvento,
+                    textColor: isMercatino ? 'white' : CONFIG.COLORS.FIERA_TEXT,
                     extendedProps: {
-                        tipo: 'mercatino',
+                        tipo: tipoEvento,
                         comune: dati.comune,
-                        giorno: dati.giorno || 'N/A',
+                        tipologia: dati.tipologia || 'N/A',
+                        giornoRicorrente: dati.giornoRicorrente || 'N/A',
                         orario: dati.orario || 'N/A',
                         luogo: dati.luogo || 'N/A',
-                        tipologia: dati.tipologia || 'N/A',
                         organizzatore: dati.organizzatore || 'N/A',
                         settori: dati.settori || 'N/A',
                         dataInizio: dati.dataInizio || 'N/A',
@@ -617,62 +743,7 @@ const DataLoader = {
             }
         });
         
-        Logger.success(`Mercatini aggiunti: ${eventiAggiunti} eventi totali`);
-        
-        // Aggiungi fiere
-        Logger.info('🎪 Aggiunta fiere al calendario...');
-        let fiereAggiunte = 0;
-        
-        this.fiere.forEach((fiera) => {
-            const dati = Utils.validaDati(fiera);
-            
-            let date = null;
-            
-            // Prova prima con Data inizio
-            if (dati.dataInizio) {
-                date = Utils.generaDataFiera(dati.dataInizio, anno);
-            }
-            
-            // Se non funziona, prova con Mese
-            if (!date && dati.mese) {
-                date = Utils.generaDataFiera(dati.mese, anno);
-            }
-            
-            // Se non funziona, prova con Giorno
-            if (!date && dati.giorno) {
-                date = Utils.generaDataFiera(dati.giorno, anno);
-            }
-            
-            if (date) {
-                const evento = {
-                    id: `fiera_${dati.comune}_${date}_${fiereAggiunte}`,
-                    title: `🎪 ${dati.evento || dati.comune}`,
-                    start: date,
-                    end: date,
-                    backgroundColor: CONFIG.COLORS.FIERA,
-                    borderColor: CONFIG.COLORS.FIERA,
-                    textColor: CONFIG.COLORS.FIERA_TEXT,
-                    extendedProps: {
-                        tipo: 'fiera',
-                        comune: dati.comune,
-                        evento: dati.evento || dati.comune,
-                        tipologia: dati.tipologia || 'N/A',
-                        mese: dati.mese || 'N/A',
-                        luogo: dati.luogo || 'N/A',
-                        orario: dati.orario || 'N/A',
-                        organizzatore: dati.organizzatore || 'N/A',
-                        dataInizio: dati.dataInizio || 'N/A',
-                        dataFine: dati.dataFine || 'N/A'
-                    }
-                };
-                
-                if (CalendarManager.addEvent(evento)) {
-                    fiereAggiunte++;
-                }
-            }
-        });
-        
-        Logger.success(`Fiere aggiunte: ${fiereAggiunte} eventi totali`);
+        Logger.success(`Eventi aggiunti: ${eventiAggiunti} eventi totali`);
         Logger.info(`Totale eventi nel calendario: ${CalendarManager.getEventCount()}`);
         
         // Forza refresh finale
