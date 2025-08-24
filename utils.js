@@ -677,49 +677,47 @@ const DataLoader = {
                     }
                 });
             });
-        },
-        
-        // Processa i risultati del parsing
-        processResults(results) {
-            // Filtra e processa tutti gli eventi
-            this.mercatini = results.data.filter((item, index) => {
-                            const dati = Utils.validaDati(item);
-                            console.log(`🔍 Processando item ${index + 1}:`, dati);
-                            
-                            // Per Imperia, aggiungi debug specifico
-                            if (dati.comune && dati.comune.toLowerCase().includes('imperia')) {
-                                console.log('🎯 IMPERIA TROVATA:', {
-                                    comune: dati.comune,
-                                    tipologia: dati.tipologia,
-                                    dataInizio: dati.dataInizio,
-                                    dataFine: dati.dataFine,
-                                    giornoRicorrente: dati.giornoRicorrente,
-                                    oggettoCompleto: dati
-                                });
-                            }
-                            
-                            // Verifica che abbia almeno comune e qualche informazione temporale
-                            const hasRequiredFields = dati.comune && 
-                                (dati.tipologia || dati.giornoRicorrente || dati.dataInizio || dati.dataFine);
-                            
-                            if (!hasRequiredFields) {
-                                console.log('⚠️ Mancano campi richiesti per:', dati.comune, dati);
-                                return false;
-                            }
-                            
-                            // Tutti gli eventi con info minime sono validi
-                            console.log('✅ Evento valido:', dati.comune, '-', dati.tipologia || 'NO TIPOLOGIA');
-                            return true;
-                        });
-                        
-                        Logger.success(`Eventi validi: ${this.mercatini.length}`);
-                        resolve();
-            },
             
         } catch (error) {
             Logger.error(`Errore caricamento mercatini: ${error.message}`);
             throw error;
         }
+    },
+    
+    // Processa i risultati del parsing
+    processResults(results) {
+        // Filtra e processa tutti gli eventi
+        this.mercatini = results.data.filter((item, index) => {
+            const dati = Utils.validaDati(item);
+            console.log(`🔍 Processando item ${index + 1}:`, dati);
+            
+            // Per Imperia, aggiungi debug specifico
+            if (dati.comune && dati.comune.toLowerCase().includes('imperia')) {
+                console.log('🎯 IMPERIA TROVATA:', {
+                    comune: dati.comune,
+                    tipologia: dati.tipologia,
+                    dataInizio: dati.dataInizio,
+                    dataFine: dati.dataFine,
+                    giornoRicorrente: dati.giornoRicorrente,
+                    oggettoCompleto: dati
+                });
+            }
+            
+            // Verifica che abbia almeno comune e qualche informazione temporale
+            const hasRequiredFields = dati.comune && 
+                (dati.tipologia || dati.giornoRicorrente || dati.dataInizio || dati.dataFine);
+            
+            if (!hasRequiredFields) {
+                console.log('⚠️ Mancano campi richiesti per:', dati.comune, dati);
+                return false;
+            }
+            
+            // Tutti gli eventi con info minime sono validi
+            console.log('✅ Evento valido:', dati.comune, '-', dati.tipologia || 'NO TIPOLOGIA');
+            return true;
+        });
+        
+        Logger.success(`Eventi validi: ${this.mercatini.length}`);
     },
     
     // Carica fiere da Google Sheets
