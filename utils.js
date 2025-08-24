@@ -154,7 +154,13 @@ const Utils = {
                 dateGenerate.map(d => d.toLocaleDateString())
         );
         
-        return dateGenerate.map(d => Utils.dateToLocalISOString(d));
+        // Fix timezone: usa formato locale invece di UTC
+        return dateGenerate.map(d => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        });
     },
     
     // Nuova funzione per interpretare il "giorno ricorrente"
@@ -296,7 +302,10 @@ const Utils = {
                 if (!isNaN(giorno) && !isNaN(mese)) {
                     const data = new Date(anno, parseInt(mese) - 1, parseInt(giorno));
                     if (data >= new Date()) {
-                        return Utils.dateToLocalISOString(data);
+                        const year = data.getFullYear();
+                        const month = String(data.getMonth() + 1).padStart(2, '0');
+                        const day = String(data.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
                     }
                 }
             }
@@ -311,7 +320,10 @@ const Utils = {
                     const annoUsato = annoData && !isNaN(annoData) ? parseInt(annoData) : anno;
                     const data = new Date(annoUsato, parseInt(mese) - 1, parseInt(giorno));
                     if (data >= new Date()) {
-                        return Utils.dateToLocalISOString(data);
+                        const year = data.getFullYear();
+                        const month = String(data.getMonth() + 1).padStart(2, '0');
+                        const day = String(data.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
                     }
                 }
             }
@@ -531,7 +543,12 @@ const CalendarManager = {
     // Gestisce il click su "+N altri"
     onMoreLinkClick(info) {
         Logger.debug('Click su più eventi:', info.date);
-        EventManager.mostraEventiGiorno(Utils.dateToLocalISOString(info.date));
+        const infoDate = info.date;
+        const year = infoDate.getFullYear();
+        const month = String(infoDate.getMonth() + 1).padStart(2, '0');
+        const day = String(infoDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        EventManager.mostraEventiGiorno(dateStr);
     },
     
     // Restituisce le classi CSS per gli eventi
@@ -1248,7 +1265,13 @@ const EventManager = {
                 // Crea un evento fittizio per mostrare i dettagli
                 const fakeEvent = {
                     title: `${evento.comune || 'Evento'}`,
-                    start: Utils.dateToLocalISOString(new Date()),
+                    start: (() => {
+                        const now = new Date();
+                        const year = now.getFullYear();
+                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                        const day = String(now.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                    })(),
                     extendedProps: Utils.validaDati(evento)
                 };
                 this.mostraDettagliEvento(fakeEvent);
@@ -1337,7 +1360,11 @@ const EventManager = {
         // Otteniamo gli eventi dal calendario FullCalendar
         const eventiCalendario = CalendarManager.calendar ? CalendarManager.calendar.getEvents() : [];
         const eventiGiorno = eventiCalendario.filter(evento => {
-            const eventoData = Utils.dateToLocalISOString(evento.start);
+            const eventoStart = evento.start;
+            const year = eventoStart.getFullYear();
+            const month = String(eventoStart.getMonth() + 1).padStart(2, '0');
+            const day = String(eventoStart.getDate()).padStart(2, '0');
+            const eventoData = `${year}-${month}-${day}`;
             return eventoData === data;
         });
         
