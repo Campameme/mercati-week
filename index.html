@@ -582,9 +582,18 @@
                 aggiornaCalendario();
                 aggiornaEventiVicini();
                 
+                // Mostra riepilogo
+                const totaleEventi = mercatini.length + fiere.length;
+                console.log(`📊 Riepilogo caricamento: ${mercatini.length} mercatini, ${fiere.length} fiere, ${totaleEventi} eventi totali`);
+                
             } catch (error) {
                 console.error('❌ Errore durante il caricamento dati:', error);
-                aggiornaStatus('Errore nel caricamento dati', 'error');
+                aggiornaStatus(`Errore nel caricamento dati: ${error.message}`, 'error');
+                
+                // Mostra errore più dettagliato
+                setTimeout(() => {
+                    aggiornaStatus('Riprova a caricare i dati', 'warning');
+                }, 3000);
             } finally {
                 mostraLoading(false);
             }
@@ -604,6 +613,7 @@
                 
                 const data = await response.text();
                 console.log(`📊 Dati mercatini ricevuti: ${data.length} caratteri`);
+                console.log(`🔍 Primi 500 caratteri: ${data.substring(0, 500)}`);
                 
                 return new Promise((resolve, reject) => {
                     Papa.parse(data, {
@@ -612,18 +622,27 @@
                         skipEmptyLines: true,
                         complete: (results) => {
                             console.log(`✅ Parsing mercatini completato: ${results.data.length} righe`);
+                            console.log(`🔍 Colonne disponibili:`, Object.keys(results.data[0] || {}));
+                            console.log(`🔍 Prima riga:`, results.data[0]);
                             
-                            // Filtra solo i mercatini
-                            mercatini = results.data.filter(item => 
-                                item.Evento && 
-                                item.Evento.toLowerCase().includes('mercatino') &&
-                                item.Comune && 
-                                item.Comune.trim() &&
-                                item.Giorno && 
-                                item.Giorno.trim()
-                            );
+                            // Filtra solo i mercatini - adattato alla nuova struttura
+                            mercatini = results.data.filter(item => {
+                                // Verifica che sia un mercatino (controlla sia Evento che Tipologia)
+                                const isMercatino = (item.Evento && item.Evento.toLowerCase().includes('mercatino')) ||
+                                                   (item.Tipologia && item.Tipologia.toLowerCase().includes('mercatino'));
+                                
+                                // Verifica che abbia i campi necessari
+                                const hasRequiredFields = item.Comune && 
+                                                        item.Comune.trim() && 
+                                                        (item.Giorno || item['Data inizio'] || item.Mese);
+                                
+                                return isMercatino && hasRequiredFields;
+                            });
                             
                             console.log(`🎯 Mercatini validi: ${mercatini.length}`);
+                            if (mercatini.length > 0) {
+                                console.log(`🔍 Primo mercatino:`, mercatini[0]);
+                            }
                             resolve();
                         },
                         error: (error) => {
@@ -653,6 +672,7 @@
                 
                 const data = await response.text();
                 console.log(`📊 Dati fiere ricevuti: ${data.length} caratteri`);
+                console.log(`🔍 Primi 500 caratteri: ${data.substring(0, 500)}`);
                 
                 return new Promise((resolve, reject) => {
                     Papa.parse(data, {
@@ -661,17 +681,27 @@
                         skipEmptyLines: true,
                         complete: (results) => {
                             console.log(`✅ Parsing fiere completato: ${results.data.length} righe`);
+                            console.log(`🔍 Colonne disponibili:`, Object.keys(results.data[0] || {}));
+                            console.log(`🔍 Prima riga:`, results.data[0]);
                             
-                            // Filtra solo le fiere/eventi (tutto tranne mercatini)
-                            fiere = results.data.filter(item => 
-                                item.Evento && 
-                                !item.Evento.toLowerCase().includes('mercatino') &&
-                                item.Comune && 
-                                item.Comune.trim() &&
-                                (item['Data inizio'] || item.Mese) // Deve avere una data
-                            );
+                            // Filtra solo le fiere/eventi (tutto tranne mercatini) - adattato alla nuova struttura
+                            fiere = results.data.filter(item => {
+                                // Verifica che NON sia un mercatino
+                                const isNotMercatino = !(item.Evento && item.Evento.toLowerCase().includes('mercatino')) &&
+                                                      !(item.Tipologia && item.Tipologia.toLowerCase().includes('mercatino'));
+                                
+                                // Verifica che abbia i campi necessari
+                                const hasRequiredFields = item.Comune && 
+                                                        item.Comune.trim() && 
+                                                        (item['Data inizio'] || item.Mese || item.Giorno);
+                                
+                                return isNotMercatino && hasRequiredFields;
+                            });
                             
                             console.log(`🎯 Fiere valide: ${fiere.length}`);
+                            if (fiere.length > 0) {
+                                console.log(`🔍 Prima fiera:`, fiere[0]);
+                            }
                             resolve();
                         },
                         error: (error) => {
@@ -707,7 +737,26 @@
             // Aggiungi mercatini
             console.log('🛒 Aggiunta mercatini al calendario...');
             mercatini.forEach((mercatino, index) => {
-                const date = generaDateMercatino(mercatino.Giorno, anno, 4);
+                console.log(`🔍 Processando mercatino ${index + 1}: ${mercatino.Comune} - ${mercatino.Giorno || mercatino['Data inizio'] || mercatino.Mese}`);
+                
+                let date = null;
+                
+                // Prova prima con Giorno (per ricorrenze)
+                if (mercatino.Giorno) {
+                    date = generaDateMercatino(mercatino.Giorno, anno, 4);
+                }
+                
+                // Se non funziona, prova con Data inizio
+                if (!date && mercatino['Data inizio']) {
+                    date = generaDataFiera(mercatino['Data inizio'], anno);
+                    if (date) date = [date]; // Converti in array per compatibilità
+                }
+                
+                // Se non funziona, prova con Mese
+                if (!date && mercatino.Mese) {
+                    date = generaDataFiera(mercatino.Mese, anno);
+                    if (date) date = [date]; // Converti in array per compatibilità
+                }
                 
                 if (date && date.length > 0) {
                     date.forEach(dataSingola => {
@@ -721,21 +770,25 @@
                                 extendedProps: {
                                     tipo: 'mercatino',
                                     comune: mercatino.Comune,
-                                    giorno: mercatino.Giorno,
-                                    orario: mercatino.Orario || 'N/A',
-                                    luogo: mercatino.Luogo || 'N/A',
+                                    giorno: mercatino.Giorno || 'N/A',
+                                    orario: mercatino.Orario || mercatino['Orario di svolgimento'] || 'N/A',
+                                    luogo: mercatino.Luogo || mercatino['Luogo di svolgimento'] || 'N/A',
                                     tipologia: mercatino.Tipologia || 'N/A',
-                                    organizzatore: mercatino.Organizzatore || 'N/A'
+                                    organizzatore: mercatino.Organizzatore || mercatino['Soggetto organizzatore'] || 'N/A',
+                                    settori: mercatino['Settori merceologici'] || 'N/A'
                                 }
                             };
                             
                             calendar.addEvent(evento);
                             eventiAggiunti++;
+                            console.log(`➕ Aggiunto mercatino: ${mercatino.Comune} - ${dataSingola}`);
                             
                         } catch (error) {
                             console.error(`❌ Errore aggiunta mercatino: ${error.message}`);
                         }
                     });
+                } else {
+                    console.log(`⚠️ Nessuna data valida per mercatino: ${mercatino.Comune}`);
                 }
             });
             
@@ -746,6 +799,8 @@
             let fiereAggiunte = 0;
             
             fiere.forEach((fiera, index) => {
+                console.log(`🔍 Processando fiera ${index + 1}: ${fiera.Evento || fiera.Comune} - ${fiera['Data inizio'] || fiera.Mese}`);
+                
                 let date = null;
                 
                 // Prova prima con Data inizio
@@ -758,10 +813,15 @@
                     date = generaDataFiera(fiera.Mese, anno);
                 }
                 
+                // Se non funziona, prova con Giorno
+                if (!date && fiera.Giorno) {
+                    date = generaDataFiera(fiera.Giorno, anno);
+                }
+                
                 if (date) {
                     try {
                         const evento = {
-                            title: `🎪 ${fiera.Evento}`,
+                            title: `🎪 ${fiera.Evento || fiera.Comune}`,
                             start: date,
                             end: date,
                             backgroundColor: '#ffc107',
@@ -770,22 +830,26 @@
                             extendedProps: {
                                 tipo: 'fiera',
                                 comune: fiera.Comune,
-                                evento: fiera.Evento,
+                                evento: fiera.Evento || fiera.Comune,
                                 tipologia: fiera.Tipologia || 'N/A',
                                 mese: fiera.Mese || 'N/A',
-                                luogo: fiera.Luogo || 'N/A',
-                                orario: fiera.Orario || 'N/A',
-                                organizzatore: fiera.Organizzatore || 'N/A'
+                                luogo: fiera.Luogo || fiera['Luogo di svolgimento'] || 'N/A',
+                                orario: fiera.Orario || fiera['Orario di svolgimento'] || 'N/A',
+                                organizzatore: fiera.Organizzatore || fiera['Soggetto organizzatore'] || 'N/A',
+                                dataInizio: fiera['Data inizio'] || 'N/A',
+                                dataFine: fiera['Data fine'] || 'N/A'
                             }
                         };
                         
-                        calendar.render();
                         calendar.addEvent(evento);
                         fiereAggiunte++;
+                        console.log(`➕ Aggiunta fiera: ${fiera.Evento || fiera.Comune} - ${date}`);
                         
                     } catch (error) {
                         console.error(`❌ Errore aggiunta fiera: ${error.message}`);
                     }
+                } else {
+                    console.log(`⚠️ Nessuna data valida per fiera: ${fiera.Evento || fiera.Comune}`);
                 }
             });
             
@@ -794,11 +858,19 @@
             
             // Forza refresh finale
             calendar.render();
+            
+            // Aggiorna status
+            aggiornaStatus(`Calendario aggiornato: ${eventiAggiunti + fiereAggiunte} eventi totali`);
         }
         
         // Genera date per mercatini ricorrenti
         function generaDateMercatino(giorno, anno, mesi) {
             if (!giorno) return null;
+            
+            console.log(`🔍 Generazione date per mercatino: "${giorno}"`);
+            
+            // Pulisci i dati
+            const giornoPulito = giorno.toString().trim().replace(/\r/g, '');
             
             const date = [];
             const dataInizio = new Date(anno, 0, 1);
@@ -806,19 +878,114 @@
             
             // Determina il giorno della settimana
             let giornoSettimana = -1;
-            if (giorno.includes('domenica')) giornoSettimana = 0;
-            else if (giorno.includes('lunedì') || giorno.includes('lunedi') || giorno.includes('Lunedì') || giorno.includes('Lunedi')) giornoSettimana = 1;
-            else if (giorno.includes('martedì') || giorno.includes('martedi') || giorno.includes('Martedì') || giorno.includes('Martedi')) giornoSettimana = 2;
-            else if (giorno.includes('mercoledì') || giorno.includes('mercoledi') || giorno.includes('Mercoledì') || giorno.includes('Mercoledi')) giornoSettimana = 3;
-            else if (giorno.includes('giovedì') || giorno.includes('giovedi') || giorno.includes('Giovedì') || giorno.includes('Giovedi')) giornoSettimana = 4;
-            else if (giorno.includes('venerdì') || giorno.includes('venerdi') || giorno.includes('Venerdì') || giorno.includes('Venerdi')) giornoSettimana = 5;
-            else if (giorno.includes('sabato') || giorno.includes('Sabato')) giornoSettimana = 6;
+            if (giornoPulito.includes('domenica')) giornoSettimana = 0;
+            else if (giornoPulito.includes('lunedì') || giornoPulito.includes('lunedi') || giornoPulito.includes('Lunedì') || giornoPulito.includes('Lunedi')) giornoSettimana = 1;
+            else if (giornoPulito.includes('martedì') || giornoPulito.includes('martedi') || giornoPulito.includes('Martedì') || giornoPulito.includes('Martedi')) giornoSettimana = 2;
+            else if (giornoPulito.includes('mercoledì') || giornoPulito.includes('mercoledi') || giornoPulito.includes('Mercoledì') || giornoPulito.includes('Mercoledi')) giornoSettimana = 3;
+            else if (giornoPulito.includes('giovedì') || giornoPulito.includes('giovedi') || giornoPulito.includes('Giovedì') || giornoPulito.includes('Giovedi')) giornoSettimana = 4;
+            else if (giornoPulito.includes('venerdì') || giornoPulito.includes('venerdi') || giornoPulito.includes('Venerdì') || giornoPulito.includes('Venerdi')) giornoSettimana = 5;
+            else if (giornoPulito.includes('sabato') || giornoPulito.includes('Sabato')) giornoSettimana = 6;
             
             if (giornoSettimana === -1) {
-                console.log(`❌ Giorno non riconosciuto: ${giorno}`);
+                console.log(`❌ Giorno non riconosciuto: ${giornoPulito}`);
                 return null;
             }
             
+            // Gestisci ricorrenze specifiche (es: "ogni terzo sabato del mese")
+            if (giornoPulito.includes('ogni') && giornoPulito.includes('del mese')) {
+                const regex = /ogni\s+(\w+)\s+(lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)/i;
+                const match = giornoPulito.match(regex);
+                
+                if (match) {
+                    const ordinale = match[1].toLowerCase();
+                    const giornoNome = match[2].toLowerCase();
+                    
+                    // Converti ordinale in numero
+                    let numero = 1;
+                    if (ordinale.includes('primo') || ordinale.includes('1')) numero = 1;
+                    else if (ordinale.includes('secondo') || ordinale.includes('2')) numero = 2;
+                    else if (ordinale.includes('terzo') || ordinale.includes('3')) numero = 3;
+                    else if (ordinale.includes('quarto') || ordinale.includes('4')) numero = 4;
+                    else if (ordinale.includes('quinto') || ordinale.includes('5')) numero = 5;
+                    
+                    // Genera date per ogni mese
+                    for (let m = 0; m < mesi; m++) {
+                        const mese = m;
+                        const dataMese = new Date(anno, mese, 1);
+                        
+                        // Trova il primo giorno della settimana del mese
+                        while (dataMese.getDay() !== giornoSettimana) {
+                            dataMese.setDate(dataMese.getDate() + 1);
+                        }
+                        
+                        // Aggiungi (numero-1) settimane per arrivare al giorno ordinale
+                        dataMese.setDate(dataMese.getDate() + ((numero - 1) * 7));
+                        
+                        // Verifica che sia ancora nello stesso mese
+                        if (dataMese.getMonth() === mese && dataMese >= new Date()) {
+                            date.push(dataMese.toISOString().split('T')[0]);
+                        }
+                    }
+                    
+                    console.log(`✅ Date generate per ricorrenza ordinale: ${date.length} date`);
+                    return date;
+                }
+            }
+            
+            // Gestisci ricorrenze semplici (es: "ogni sabato")
+            if (giornoPulito.includes('ogni')) {
+                // Trova il primo giorno della settimana
+                while (data.getDay() !== giornoSettimana) {
+                    data.setDate(data.getDate() + 1);
+                }
+                
+                // Genera date per i mesi specificati
+                const dataFine = new Date(anno, mesi, 0);
+                while (data <= dataFine) {
+                    if (data >= new Date()) {
+                        date.push(data.toISOString().split('T')[0]);
+                    }
+                    data.setDate(data.getDate() + 7);
+                }
+                
+                console.log(`✅ Date generate per ricorrenza settimanale: ${date.length} date`);
+                return date;
+            }
+            
+            // Gestisci ricorrenze ordinali (es: "1^ domenica del mese")
+            if (giornoPulito.includes('^') || giornoPulito.includes('°')) {
+                const regex = /(\d+)[^°]\s+(lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)/i;
+                const match = giornoPulito.match(regex);
+                
+                if (match) {
+                    const numero = parseInt(match[1]);
+                    const giornoNome = match[2].toLowerCase();
+                    
+                    // Genera date per ogni mese
+                    for (let m = 0; m < mesi; m++) {
+                        const mese = m;
+                        const dataMese = new Date(anno, mese, 1);
+                        
+                        // Trova il primo giorno della settimana del mese
+                        while (dataMese.getDay() !== giornoSettimana) {
+                            dataMese.setDate(dataMese.getDate() + 1);
+                        }
+                        
+                        // Aggiungi (numero-1) settimane per arrivare al giorno ordinale
+                        dataMese.setDate(dataMese.getDate() + ((numero - 1) * 7));
+                        
+                        // Verifica che sia ancora nello stesso mese
+                        if (dataMese.getMonth() === mese && dataMese >= new Date()) {
+                            date.push(dataMese.toISOString().split('T')[0]);
+                        }
+                    }
+                    
+                    console.log(`✅ Date generate per ricorrenza ordinale: ${date.length} date`);
+                    return date;
+                }
+            }
+            
+            // Gestisci ricorrenze semplici (es: "sabato")
             // Trova il primo giorno della settimana
             while (data.getDay() !== giornoSettimana) {
                 data.setDate(data.getDate() + 1);
@@ -827,10 +994,13 @@
             // Genera date per i mesi specificati
             const dataFine = new Date(anno, mesi, 0);
             while (data <= dataFine) {
-                date.push(data.toISOString().split('T')[0]);
+                if (data >= new Date()) {
+                    date.push(data.toISOString().split('T')[0]);
+                }
                 data.setDate(data.getDate() + 7);
             }
             
+            console.log(`✅ Date generate per ricorrenza semplice: ${date.length} date`);
             return date;
         }
         
@@ -838,15 +1008,39 @@
         function generaDataFiera(dataInizio, anno) {
             if (!dataInizio) return null;
             
-            const primaData = dataInizio.split('\n')[0].trim();
+            console.log(`🔍 Generazione data per: "${dataInizio}"`);
+            
+            // Pulisci i dati
+            const dataPulita = dataInizio.toString().trim().replace(/\r/g, '');
             
             // Gestisci formato DD/MM
-            if (primaData.includes('/')) {
-                const [giorno, mese] = primaData.split('/');
-                const data = new Date(anno, parseInt(mese) - 1, parseInt(giorno));
-                
-                if (data >= new Date()) {
-                    return data.toISOString().split('T')[0];
+            if (dataPulita.includes('/')) {
+                const parti = dataPulita.split('/');
+                if (parti.length >= 2) {
+                    const [giorno, mese] = parti;
+                    if (!isNaN(giorno) && !isNaN(mese)) {
+                        const data = new Date(anno, parseInt(mese) - 1, parseInt(giorno));
+                        if (data >= new Date()) {
+                            console.log(`✅ Data generata DD/MM: ${data.toISOString().split('T')[0]}`);
+                            return data.toISOString().split('T')[0];
+                        }
+                    }
+                }
+            }
+            
+            // Gestisci formato DD.MM.YYYY
+            if (dataPulita.includes('.')) {
+                const parti = dataPulita.split('.');
+                if (parti.length >= 3) {
+                    const [giorno, mese, annoData] = parti;
+                    if (!isNaN(giorno) && !isNaN(mese)) {
+                        const annoUsato = annoData && !isNaN(annoData) ? parseInt(annoData) : anno;
+                        const data = new Date(annoUsato, parseInt(mese) - 1, parseInt(giorno));
+                        if (data >= new Date()) {
+                            console.log(`✅ Data generata DD.MM.YYYY: ${data.toISOString().split('T')[0]}`);
+                            return data.toISOString().split('T')[0];
+                        }
+                    }
                 }
             }
             
@@ -857,21 +1051,53 @@
             };
             
             for (let [meseNome, meseNum] of Object.entries(mesi)) {
-                if (primaData.toLowerCase().includes(meseNome)) {
+                if (dataPulita.toLowerCase().includes(meseNome)) {
                     const data = new Date(anno, meseNum, 1);
                     if (data >= new Date()) {
+                        console.log(`✅ Data generata solo mese: ${data.toISOString().split('T')[0]}`);
                         return data.toISOString().split('T')[0];
                     }
                 }
             }
             
+            // Gestisci formato "ogni X giorno del mese"
+            const regexOgni = /ogni\s+(\d+)\w*\s+(lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)/i;
+            const matchOgni = dataPulita.match(regexOgni);
+            if (matchOgni) {
+                const numero = parseInt(matchOgni[1]);
+                const giorno = matchOgni[2].toLowerCase();
+                const date = generaDateMercatino(`ogni ${numero} ${giorno} del mese`, anno, 4);
+                if (date && date.length > 0) {
+                    console.log(`✅ Date generate per ricorrenza: ${date.length} date`);
+                    return date[0]; // Ritorna la prima data
+                }
+            }
+            
+            // Gestisci formato "X^ giorno del mese"
+            const regexOrdinale = /(\d+)\w*\s+(lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)/i;
+            const matchOrdinale = dataPulita.match(regexOrdinale);
+            if (matchOrdinale) {
+                const numero = parseInt(matchOrdinale[1]);
+                const giorno = matchOrdinale[2].toLowerCase();
+                const date = generaDateMercatino(`${numero}^ ${giorno} del mese`, anno, 4);
+                if (date && date.length > 0) {
+                    console.log(`✅ Date generate per ordinale: ${date.length} date`);
+                    return date[0]; // Ritorna la prima data
+                }
+            }
+            
+            console.log(`⚠️ Nessuna data valida generata per: "${dataPulita}"`);
             return null;
         }
         
         // Aggiorna filtri
         function aggiornaFiltri() {
             // Comuni
-            const comuni = [...new Set([...mercatini.map(m => m.Comune), ...fiere.map(f => f.Comune)])];
+            const comuni = [...new Set([
+                ...mercatini.map(m => m.Comune).filter(Boolean),
+                ...fiere.map(f => f.Comune).filter(Boolean)
+            ])];
+            
             const comuneSelect = document.getElementById('comuneFilter');
             comuneSelect.innerHTML = '<option value="">Tutti i comuni</option>';
             comuni.forEach(comune => {
@@ -881,18 +1107,22 @@
                 comuneSelect.appendChild(option);
             });
             
-            // Categorie
-            const categorie = [...new Set([...mercatini.map(m => m.Tipologia), ...fiere.map(f => f.Tipologia)])];
+            // Categorie/Tipologie
+            const tipologie = [...new Set([
+                ...mercatini.map(m => m.Tipologia).filter(Boolean),
+                ...fiere.map(f => f.Tipologia).filter(Boolean)
+            ])];
+            
             const categoriaSelect = document.getElementById('categoriaFilter');
-            categoriaSelect.innerHTML = '<option value="">Tutte le categorie</option>';
-            categorie.forEach(categoria => {
-                if (categoria) {
-                    const option = document.createElement('option');
-                    option.value = categoria;
-                    option.textContent = categoria;
-                    categoriaSelect.appendChild(option);
-                }
+            categoriaSelect.innerHTML = '<option value="">Tutte le tipologie</option>';
+            tipologie.forEach(tipologia => {
+                const option = document.createElement('option');
+                option.value = tipologia;
+                option.textContent = tipologia;
+                categoriaSelect.appendChild(option);
             });
+            
+            console.log(`🔍 Filtri aggiornati: ${comuni.length} comuni, ${tipologie.length} tipologie`);
             
             // Aggiungi event listeners per i filtri
             comuneSelect.addEventListener('change', applicaFiltri);
@@ -906,7 +1136,10 @@
             const categoria = document.getElementById('categoriaFilter').value;
             const tipo = document.getElementById('tipoFilter').value;
             
+            console.log(`🔍 Applicazione filtri: Comune=${comune}, Categoria=${categoria}, Tipo=${tipo}`);
+            
             const eventi = calendar.getEvents();
+            let eventiVisibili = 0;
             
             eventi.forEach(evento => {
                 let mostra = true;
@@ -925,10 +1158,16 @@
                 
                 if (mostra) {
                     evento.setProp('display', 'auto');
+                    eventiVisibili++;
                 } else {
                     evento.setProp('display', 'none');
                 }
             });
+            
+            console.log(`✅ Filtri applicati: ${eventiVisibili}/${eventi.length} eventi visibili`);
+            
+            // Aggiorna contatore eventi
+            aggiornaStatus(`Eventi filtrati: ${eventiVisibili} di ${eventi.length} totali`);
         }
         
         // Mostra dettagli evento
@@ -952,6 +1191,61 @@
                     <span class="event-detail-label">🏷️ Tipologia:</span>
                     <span class="event-detail-value">${evento.extendedProps.tipologia}</span>
                 </div>
+            `;
+            
+            // Aggiungi campi specifici per mercatini
+            if (evento.extendedProps.tipo === 'mercatino') {
+                if (evento.extendedProps.giorno && evento.extendedProps.giorno !== 'N/A') {
+                    html += `
+                        <div class="event-detail-row">
+                            <span class="event-detail-label">🔄 Ricorrenza:</span>
+                            <span class="event-detail-value">${evento.extendedProps.giorno}</span>
+                        </div>
+                    `;
+                }
+                
+                if (evento.extendedProps.settori && evento.extendedProps.settori !== 'N/A') {
+                    html += `
+                        <div class="event-detail-row">
+                            <span class="event-detail-label">🛍️ Settori:</span>
+                            <span class="event-detail-value">${evento.extendedProps.settori}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Aggiungi campi specifici per fiere
+            if (evento.extendedProps.tipo === 'fiera') {
+                if (evento.extendedProps.mese && evento.extendedProps.mese !== 'N/A') {
+                    html += `
+                        <div class="event-detail-row">
+                            <span class="event-detail-label">📅 Mese:</span>
+                            <span class="event-detail-value">${evento.extendedProps.mese}</span>
+                        </div>
+                    `;
+                }
+                
+                if (evento.extendedProps.dataInizio && evento.extendedProps.dataInizio !== 'N/A') {
+                    html += `
+                        <div class="event-detail-row">
+                            <span class="event-detail-label">🚀 Data Inizio:</span>
+                            <span class="event-detail-value">${evento.extendedProps.dataInizio}</span>
+                        </div>
+                    `;
+                }
+                
+                if (evento.extendedProps.dataFine && evento.extendedProps.dataFine !== 'N/A') {
+                    html += `
+                        <div class="event-detail-row">
+                            <span class="event-detail-label">🏁 Data Fine:</span>
+                            <span class="event-detail-value">${evento.extendedProps.dataFine}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Aggiungi campi comuni
+            html += `
                 <div class="event-detail-row">
                     <span class="event-detail-label">📍 Luogo:</span>
                     <span class="event-detail-value">${evento.extendedProps.luogo}</span>
@@ -987,13 +1281,25 @@
             } else {
                 let html = '';
                 eventiGiorno.forEach(evento => {
+                    let dettagli = `📍 ${evento.extendedProps.comune}`;
+                    
+                    if (evento.extendedProps.tipologia && evento.extendedProps.tipologia !== 'N/A') {
+                        dettagli += ` | 🏷️ ${evento.extendedProps.tipologia}`;
+                    }
+                    
+                    if (evento.extendedProps.orario && evento.extendedProps.orario !== 'N/A') {
+                        dettagli += ` | 🕐 ${evento.extendedProps.orario}`;
+                    }
+                    
+                    if (evento.extendedProps.luogo && evento.extendedProps.luogo !== 'N/A') {
+                        dettagli += ` | 📍 ${evento.extendedProps.luogo}`;
+                    }
+                    
                     html += `
                         <div class="event-item">
                             <div class="event-title">${evento.title}</div>
                             <div class="event-details">
-                                📍 ${evento.extendedProps.comune} | 
-                                🏷️ ${evento.extendedProps.tipologia} | 
-                                🕐 ${evento.extendedProps.orario}
+                                ${dettagli}
                             </div>
                             <div class="event-actions">
                                 <button class="btn btn-sm btn-primary" onclick="mostraDettagliEvento(${JSON.stringify(evento)})">
@@ -1046,12 +1352,21 @@
             
             let html = '';
             eventi.forEach(evento => {
+                let dettagli = `📅 ${evento.start.toLocaleDateString('it-IT')}`;
+                
+                if (evento.extendedProps.comune) {
+                    dettagli += ` | 📍 ${evento.extendedProps.comune}`;
+                }
+                
+                if (evento.extendedProps.tipologia && evento.extendedProps.tipologia !== 'N/A') {
+                    dettagli += ` | 🏷️ ${evento.extendedProps.tipologia}`;
+                }
+                
                 html += `
                     <div class="event-item">
                         <div class="event-title">${evento.title}</div>
                         <div class="event-details">
-                            📅 ${evento.start.toLocaleDateString('it-IT')} | 
-                            📍 ${evento.extendedProps.comune}
+                            ${dettagli}
                         </div>
                         <div class="event-actions">
                             <button class="btn btn-sm btn-primary" onclick="mostraDettagliEvento(${JSON.stringify(evento)})">
@@ -1085,12 +1400,21 @@
             
             let html = '';
             eventi.forEach(evento => {
+                let dettagli = `📅 ${evento.start.toLocaleDateString('it-IT')}`;
+                
+                if (evento.extendedProps.comune) {
+                    dettagli += ` | 📍 ${evento.extendedProps.comune}`;
+                }
+                
+                if (evento.extendedProps.tipologia && evento.extendedProps.tipologia !== 'N/A') {
+                    dettagli += ` | 🏷️ ${evento.extendedProps.tipologia}`;
+                }
+                
                 html += `
                     <div class="event-item">
                         <div class="event-title">${evento.title}</div>
                         <div class="event-details">
-                            📅 ${evento.start.toLocaleDateString('it-IT')} | 
-                            📍 ${evento.extendedProps.comune}
+                            ${dettagli}
                         </div>
                         <div class="event-actions">
                             <button class="btn btn-sm btn-primary" onclick="mostraDettagliEvento(${JSON.stringify(evento)})">
@@ -1116,7 +1440,26 @@
         function aggiornaStatus(messaggio, tipo = 'info') {
             const status = document.getElementById('loadingStatus');
             status.textContent = messaggio;
-            status.className = tipo === 'error' ? 'text-danger' : 'text-success';
+            
+            // Rimuovi classi precedenti
+            status.className = '';
+            
+            // Aggiungi classe appropriata
+            switch (tipo) {
+                case 'error':
+                    status.className = 'text-danger fw-bold';
+                    break;
+                case 'warning':
+                    status.className = 'text-warning fw-bold';
+                    break;
+                case 'success':
+                    status.className = 'text-success fw-bold';
+                    break;
+                default:
+                    status.className = 'text-info';
+            }
+            
+            console.log(`📱 Status aggiornato: ${messaggio} (${tipo})`);
         }
         
         function controllaStatoOnline() {
