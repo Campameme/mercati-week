@@ -180,11 +180,39 @@ body {
     border: none !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
     transition: all 0.3s ease !important;
+    margin: 1px 0 !important;
+    font-size: 0.85rem !important;
+    line-height: 1.2 !important;
 }
 
 .fc-event:hover {
     transform: scale(1.05) !important;
     box-shadow: 0 4px 16px rgba(0,0,0,0.25) !important;
+}
+
+/* Gestione eventi multipli per giorno */
+.fc-daygrid-day-events {
+    min-height: auto !important;
+}
+
+.fc-daygrid-event-dot {
+    display: none !important;
+}
+
+.fc-daygrid-day-frame {
+    min-height: 100px !important;
+}
+
+/* Responsive per eventi multipli */
+@media (max-width: 768px) {
+    .fc-event {
+        font-size: 0.75rem !important;
+        padding: 2px 4px !important;
+    }
+    
+    .fc-daygrid-day-frame {
+        min-height: 80px !important;
+    }
 }
 
 .fc-event-mercatino {
