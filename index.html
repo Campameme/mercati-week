@@ -13,16 +13,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
     
-    <!-- Verifica FullCalendar -->
-    <script>
-        window.addEventListener('load', function() {
-            console.log('🔍 Verifica FullCalendar:', {
-                FullCalendar: typeof FullCalendar,
-                bootstrap: typeof bootstrap,
-                Papa: typeof Papa
-            });
-        });
-    </script>
+
 </head>
 <body>
     <div class="main-container">
@@ -149,27 +140,6 @@
     <!-- Custom Scripts -->
     <script defer src="utils.js"></script>
     
-    <!-- Verifica caricamento -->
-    <script>
-        window.addEventListener('load', function() {
-            console.log('📦 Librerie caricate:', {
-                FullCalendar: typeof FullCalendar !== 'undefined',
-                bootstrap: typeof bootstrap !== 'undefined',
-                Papa: typeof Papa !== 'undefined',
-                Utils: typeof Utils !== 'undefined',
-                App: typeof App !== 'undefined'
-            });
-            
-            if (typeof FullCalendar === 'undefined') {
-                console.error('❌ FullCalendar non caricato!');
-            }
-            if (typeof bootstrap === 'undefined') {
-                console.error('❌ Bootstrap non caricato!');
-            }
-            if (typeof Papa === 'undefined') {
-                console.error('❌ PapaParse non caricato!');
-            }
-        });
-    </script>
+
 </body>
 </html>

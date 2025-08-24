@@ -277,7 +277,20 @@ const CalendarManager = {
         });
         
         this.calendar.render();
-        Logger.success('✅ Calendario inizializzato');
+        Logger.success('✅ Calendario inizializzato e renderizzato');
+        
+        // Verifica che il calendario sia stato renderizzato
+        setTimeout(() => {
+            const fcEvents = calendarEl.querySelectorAll('.fc-event');
+            const fcCells = calendarEl.querySelectorAll('.fc-daygrid-day');
+            console.log('📊 Stato calendario dopo render:', {
+                eventi: fcEvents.length,
+                celle: fcCells.length,
+                altezza: calendarEl.offsetHeight,
+                larghezza: calendarEl.offsetWidth
+            });
+        }, 100);
+        
         } catch (error) {
             Logger.error('❌ Errore inizializzazione calendario:', error);
             console.error('Stack trace:', error.stack);
@@ -664,6 +677,21 @@ const DataLoader = {
         
         // Forza refresh finale
         CalendarManager.refresh();
+        
+        // Verifica finale
+        setTimeout(() => {
+            const totalEvents = CalendarManager.getEventCount();
+            console.log('🎯 Riepilogo finale caricamento:');
+            console.log(`- Mercatini aggiunti: ${eventiAggiunti}`);
+            console.log(`- Fiere aggiunte: ${fiereAggiunte}`);
+            console.log(`- Eventi totali nel calendario: ${totalEvents}`);
+            
+            if (totalEvents === 0) {
+                console.warn('⚠️ Nessun evento nel calendario! Verifica i dati.');
+            } else {
+                console.log('✅ Eventi caricati con successo nel calendario!');
+            }
+        }, 200);
     }
 };
 
@@ -1090,7 +1118,13 @@ console.log('🎬 Setup inizializzazione...');
 function initApp() {
     console.log('📱 Tentativo di inizializzazione app...');
     
-    // Verifica che tutti i componenti necessari siano caricati
+    // Verifica librerie esterne
+    console.log('📦 Verifica librerie:', {
+        FullCalendar: typeof FullCalendar !== 'undefined',
+        bootstrap: typeof bootstrap !== 'undefined',
+        Papa: typeof Papa !== 'undefined'
+    });
+    
     if (typeof FullCalendar === 'undefined') {
         console.error('❌ FullCalendar non caricato, riprovo tra 100ms...');
         setTimeout(initApp, 100);
@@ -1117,15 +1151,35 @@ function initApp() {
         return;
     }
     
-    console.log('✅ Tutti i componenti caricati, avvio App.init()...');
+    console.log('✅ Tutti i componenti esterni caricati!');
+    console.log('🔍 Verifica moduli interni:', {
+        CONFIG: typeof CONFIG !== 'undefined',
+        Logger: typeof Logger !== 'undefined',
+        Utils: typeof Utils !== 'undefined',
+        CalendarManager: typeof CalendarManager !== 'undefined',
+        DataLoader: typeof DataLoader !== 'undefined',
+        App: typeof App !== 'undefined',
+        FilterManager: typeof FilterManager !== 'undefined',
+        EventManager: typeof EventManager !== 'undefined'
+    });
+    
+    console.log('🚀 Avvio App.init()...');
     App.init();
 }
 
-// Avvia l'inizializzazione quando il DOM è pronto
+// Avvia l'inizializzazione
+console.log('🎬 Impostazione inizializzazione...');
+console.log('📄 Document readyState:', document.readyState);
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
+    console.log('⏳ DOM in caricamento, attendo DOMContentLoaded...');
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('✅ DOMContentLoaded ricevuto');
+        setTimeout(initApp, 50); // Piccolo delay per assicurare che tutto sia pronto
+    });
 } else {
-    initApp();
+    console.log('✅ DOM già caricato, avvio immediato');
+    setTimeout(initApp, 50);
 }
 
 // Rendi App accessibile globalmente
