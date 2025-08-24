@@ -267,12 +267,23 @@
             });
             
             log(`✅ Mercatini aggiunti: ${eventiAggiunti} eventi totali`);
+            
+            // DEBUG: Verifica eventi nel calendario
+            const eventiCalendario = calendar.getEvents();
+            log(`🔍 DEBUG: Eventi nel calendario dopo aggiunta: ${eventiCalendario.length}`);
+            log(`🔍 DEBUG: Primi 3 eventi:`, eventiCalendario.slice(0, 3).map(e => `${e.title} - ${e.start.toISOString().split('T')[0]}`));
+            
             updateStatus(`Mercatini aggiunti: ${eventiAggiunti} eventi`, 'success');
             
             // Forza refresh
             setTimeout(() => {
                 calendar.render();
                 log('🔄 Calendario refresh forzato');
+                
+                // DEBUG: Verifica eventi dopo refresh
+                const eventiDopoRefresh = calendar.getEvents();
+                log(`🔍 DEBUG: Eventi dopo refresh: ${eventiDopoRefresh.length}`);
+                
                 updateStatistiche();
             }, 100);
         }
@@ -413,12 +424,23 @@
             });
             
             log(`✅ Fiere aggiunte: ${eventiAggiunti} eventi totali`);
+            
+            // DEBUG: Verifica eventi nel calendario
+            const eventiCalendario = calendar.getEvents();
+            log(`🔍 DEBUG: Eventi nel calendario dopo fiere: ${eventiCalendario.length}`);
+            log(`🔍 DEBUG: Primi 3 eventi:`, eventiCalendario.slice(0, 3).map(e => `${e.title} - ${e.start.toISOString().split('T')[0]}`));
+            
             updateStatus(`Fiere aggiunte: ${eventiAggiunti} eventi`, 'success');
             
             // Forza refresh
             setTimeout(() => {
                 calendar.render();
                 log('🔄 Calendario refresh forzato');
+                
+                // DEBUG: Verifica eventi dopo refresh
+                const eventiDopoRefresh = calendar.getEvents();
+                log(`🔍 DEBUG: Eventi dopo refresh: ${eventiDopoRefresh.length}`);
+                
                 updateStatistiche();
             }, 100);
         }
@@ -471,6 +493,33 @@
                         log(`✅ Data fiera punto generata: ${data.toISOString().split('T')[0]}`);
                         return data.toISOString().split('T')[0];
                     }
+                }
+            }
+            
+            // NUOVO: Gestisci formato "08/02 15/02 1/08 8/08 15/08 22/08 29/08"
+            if (primaData.includes('/') && primaData.split(' ').length > 1) {
+                const dateMultiple = primaData.split(' ');
+                for (let dataStr of dateMultiple) {
+                    if (dataStr.includes('/')) {
+                        const [giorno, mese] = dataStr.split('/');
+                        const data = new Date(anno, parseInt(mese) - 1, parseInt(giorno));
+                        
+                        // Verifica che la data sia nel futuro
+                        if (data >= new Date()) {
+                            log(`✅ Data fiera multipla generata: ${data.toISOString().split('T')[0]} da "${dataStr}"`);
+                            return data.toISOString().split('T')[0];
+                        }
+                    }
+                }
+            }
+            
+            // NUOVO: Gestisci formato "Mese febbraio agosto"
+            if (primaData.includes('Mese') && primaData.includes('febbraio')) {
+                // Prendi febbraio come mese di riferimento
+                const data = new Date(anno, 1, 1); // Febbraio = mese 1 (0-based)
+                if (data >= new Date()) {
+                    log(`✅ Data fiera mese generata: ${data.toISOString().split('T')[0]} da "febbraio"`);
+                    return data.toISOString().split('T')[0];
                 }
             }
             
