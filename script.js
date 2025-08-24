@@ -286,59 +286,70 @@ function aggiornaCalendario() {
     const oggi = new Date();
     const anno = oggi.getFullYear();
     
-    // Aggiungi mercatini (solo prossimi 3 mesi per performance)
-    mercatini.slice(0, 20).forEach((mercatino, index) => {
+    // Aggiungi mercatini (solo prossimi 4 mesi per performance)
+    mercatini.slice(0, 15).forEach((mercatino, index) => {
         console.log(`🔍 Processando mercatino ${index + 1}: ${mercatino.Comune} - ${mercatino.Giorno}`);
         
-        const date = creaDataMercatino(mercatino.Giorno, anno, 3);
+        const date = creaDataMercatino(mercatino.Giorno, anno, 4);
         if (date && date.length > 0) {
             date.forEach(dataSingola => {
-                const evento = {
-                    title: `🛒 ${mercatino.Comune}`,
-                    start: dataSingola,
-                    end: dataSingola,
-                    backgroundColor: '#28a745',
-                    borderColor: '#28a745',
-                    extendedProps: {
-                        tipo: 'mercatino',
-                        dati: mercatino
-                    }
-                };
-                
-                calendar.addEvent(evento);
-                eventiAggiunti++;
-                console.log(`➕ Aggiunto evento: ${mercatino.Comune} - ${dataSingola}`);
+                try {
+                    const evento = {
+                        title: `🛒 ${mercatino.Comune}`,
+                        start: dataSingola,
+                        end: dataSingola,
+                        backgroundColor: '#28a745',
+                        borderColor: '#28a745',
+                        extendedProps: {
+                            tipo: 'mercatino',
+                            dati: mercatino
+                        }
+                    };
+                    
+                    calendar.addEvent(evento);
+                    eventiAggiunti++;
+                    console.log(`➕ Aggiunto mercatino: ${mercatino.Comune} - ${dataSingola}`);
+                } catch (error) {
+                    console.error(`❌ Errore aggiunta mercatino: ${error.message}`);
+                }
             });
         }
     });
     
     // Aggiungi fiere (solo future)
-    fiere.slice(0, 20).forEach((fiera, index) => {
+    fiere.slice(0, 15).forEach((fiera, index) => {
         console.log(`🔍 Processando fiera ${index + 1}: ${fiera.Comune} - ${fiera['Data inizio']}`);
         
         const date = creaDataFiera(fiera['Data inizio'], anno);
         if (date) {
-            const evento = {
-                title: `🎪 ${fiera.Denominazione || fiera.Comune}`,
-                start: date,
-                end: date,
-                backgroundColor: '#ffc107',
-                borderColor: '#ffc107',
-                textColor: '#000',
-                extendedProps: {
-                    tipo: 'fiera',
-                    dati: fiera
-                }
-            };
-            
-            calendar.addEvent(evento);
-            eventiAggiunti++;
-            console.log(`➕ Aggiunta fiera: ${fiera.Denominazione || fiera.Comune} - ${date}`);
+            try {
+                const evento = {
+                    title: `🎪 ${fiera.Denominazione || fiera.Comune}`,
+                    start: date,
+                    end: date,
+                    backgroundColor: '#ffc107',
+                    borderColor: '#ffc107',
+                    textColor: '#000',
+                    extendedProps: {
+                        tipo: 'fiera',
+                        dati: fiera
+                    }
+                };
+                
+                calendar.addEvent(evento);
+                eventiAggiunti++;
+                console.log(`➕ Aggiunta fiera: ${fiera.Denominazione || fiera.Comune} - ${date}`);
+            } catch (error) {
+                console.error(`❌ Errore aggiunta fiera: ${error.message}`);
+            }
         }
     });
     
     console.log(`✅ Calendario aggiornato: ${eventiAggiunti} eventi totali aggiunti`);
     console.log(`📊 Eventi nel calendario: ${calendar.getEvents().length}`);
+    
+    // Forza il refresh del calendario
+    calendar.render();
 }
 
 // ===== LOGICA DATE =====
