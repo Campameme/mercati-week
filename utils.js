@@ -4,8 +4,6 @@ const Utils = {
     generaDateMercatino(giorno, anno, mesi, dataInizio = null, dataFine = null) {
         if (!giorno) return null;
         
-        Logger.debug(`Generazione date per mercatino: "${giorno}" - Data inizio: ${dataInizio}, Data fine: ${dataFine}`);
-        
         // Pulisci i dati
         const giornoPulito = giorno.toString().trim().replace(/\r/g, '');
         
@@ -19,7 +17,6 @@ const Utils = {
                 const [giornoInizio, meseInizio] = dataInizio.split('/');
                 if (giornoInizio && meseInizio) {
                     dataInizioCalcolo = new Date(anno, parseInt(meseInizio) - 1, parseInt(giornoInizio));
-                    Logger.debug(`Data inizio specifica: ${dataInizioCalcolo.toISOString().split('T')[0]}`);
                 }
             } catch (error) {
                 Logger.warning(`Errore parsing data inizio: ${dataInizio}`);
@@ -31,14 +28,11 @@ const Utils = {
                 const [giornoFine, meseFine] = dataFine.split('/');
                 if (giornoFine && meseFine) {
                     dataFineCalcolo = new Date(anno, parseInt(meseFine) - 1, parseInt(giornoFine));
-                    Logger.debug(`Data fine specifica: ${dataFineCalcolo.toISOString().split('T')[0]}`);
                 }
             } catch (error) {
                 Logger.warning(`Errore parsing data fine: ${dataFine}`);
             }
         }
-        
-        Logger.debug(`Periodo calcolo: da ${dataInizioCalcolo.toISOString().split('T')[0]} a ${dataFineCalcolo.toISOString().split('T')[0]}`);
         
         // Determina il giorno della settimana
         let giornoSettimana = -1;
@@ -55,38 +49,26 @@ const Utils = {
             return null;
         }
         
-        Logger.success(`Giorno settimana riconosciuto: ${giornoSettimana} (${['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'][giornoSettimana]})`);
-        
         // Trova il primo giorno della settimana a partire dalla data inizio
         let data = new Date(dataInizioCalcolo);
         while (data.getDay() !== giornoSettimana) {
             data.setDate(data.getDate() + 1);
         }
         
-        Logger.debug(`Prima data trovata: ${data.toISOString().split('T')[0]}`);
-        
         // Genera date per il periodo specificato
-        let contatoreDate = 0;
         while (data <= dataFineCalcolo) {
             if (data >= new Date()) {
                 date.push(data.toISOString().split('T')[0]);
-                contatoreDate++;
             }
             data.setDate(data.getDate() + 7);
         }
         
-        Logger.success(`Date generate per ${giornoPulito}: ${date.length} date nel periodo ${dataInizioCalcolo.toISOString().split('T')[0]} - ${dataFineCalcolo.toISOString().split('T')[0]}`);
-        if (date.length > 0) {
-            Logger.debug(`Prime 5 date: ${date.slice(0, 5).join(', ')}`);
-        }
         return date;
     },
     
     // Genera data per fiere
     generaDataFiera(dataInizio, anno) {
         if (!dataInizio) return null;
-        
-        Logger.debug(`Generazione data per: "${dataInizio}"`);
         
         // Pulisci i dati
         const dataPulita = dataInizio.toString().trim().replace(/\r/g, '');
@@ -99,7 +81,6 @@ const Utils = {
                 if (!isNaN(giorno) && !isNaN(mese)) {
                     const data = new Date(anno, parseInt(mese) - 1, parseInt(giorno));
                     if (data >= new Date()) {
-                        Logger.success(`Data generata DD/MM: ${data.toISOString().split('T')[0]}`);
                         return data.toISOString().split('T')[0];
                     }
                 }
@@ -115,7 +96,6 @@ const Utils = {
                     const annoUsato = annoData && !isNaN(annoData) ? parseInt(annoData) : anno;
                     const data = new Date(annoUsato, parseInt(mese) - 1, parseInt(giorno));
                     if (data >= new Date()) {
-                        Logger.success(`Data generata DD.MM.YYYY: ${data.toISOString().split('T')[0]}`);
                         return data.toISOString().split('T')[0];
                     }
                 }
@@ -132,13 +112,11 @@ const Utils = {
             if (dataPulita.toLowerCase().includes(meseNome)) {
                 const data = new Date(anno, meseNum, 1);
                 if (data >= new Date()) {
-                    Logger.success(`Data generata solo mese: ${data.toISOString().split('T')[0]}`);
                     return data.toISOString().split('T')[0];
                 }
             }
         }
         
-        Logger.warning(`Nessuna data valida generata per: "${dataPulita}"`);
         return null;
     },
     

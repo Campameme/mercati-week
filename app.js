@@ -72,8 +72,6 @@ const App = {
             tipo: document.getElementById('tipoFilter').value
         };
         
-        Logger.debug('Applicazione filtri:', filtri);
-        
         const eventiVisibili = CalendarManager.filterEvents(filtri);
         this.aggiornaStatus(`Eventi filtrati: ${eventiVisibili} di ${CalendarManager.getEventCount()} totali`);
     },
@@ -132,8 +130,6 @@ const App = {
             default:
                 status.className = 'text-info';
         }
-        
-        Logger.info(`Status aggiornato: ${messaggio} (${tipo})`);
     }
 };
 
@@ -170,8 +166,6 @@ const FilterManager = {
             option.textContent = tipologia;
             categoriaSelect.appendChild(option);
         });
-        
-        Logger.info(`Filtri aggiornati: ${comuni.length} comuni, ${tipologie.length} tipologie`);
     }
 };
 
@@ -231,20 +225,6 @@ const EventManager = {
                 dettagli += ` | 🏷️ ${evento.extendedProps.tipologia}`;
             }
             
-            // Aggiungi informazioni sulla ricorrenza per mercatini
-            if (evento.extendedProps.tipo === 'mercatino' && evento.extendedProps.giorno && evento.extendedProps.giorno !== 'N/A') {
-                let validita = '';
-                if (evento.extendedProps.dataInizio === 'ricorrente') {
-                    validita = ' | 🔄 Ricorrente tutto l\'anno';
-                } else if (evento.extendedProps.dataInizio && evento.extendedProps.dataInizio !== 'N/A') {
-                    validita = ` | 📅 Dal ${evento.extendedProps.dataInizio}`;
-                    if (evento.extendedProps.dataFine && evento.extendedProps.dataFine !== 'N/A' && evento.extendedProps.dataFine !== 'ricorrente') {
-                        validita += ` al ${evento.extendedProps.dataFine}`;
-                    }
-                }
-                dettagli += validita;
-            }
-            
             html += `
                 <div class="event-item">
                     <div class="event-title">${evento.title}</div>
@@ -300,24 +280,7 @@ const EventManager = {
                 `;
             }
             
-            if (evento.extendedProps.dataInizio && evento.extendedProps.dataInizio !== 'N/A') {
-                const validita = evento.extendedProps.dataInizio === 'ricorrente' ? 'Tutto l\'anno' : `Dal ${evento.extendedProps.dataInizio}`;
-                html += `
-                    <div class="event-detail-row">
-                        <span class="event-detail-label">📅 Validità:</span>
-                        <span class="event-detail-value">${validita}</span>
-                    </div>
-                `;
-            }
-            
-            if (evento.extendedProps.dataFine && evento.extendedProps.dataFine !== 'N/A' && evento.extendedProps.dataFine !== 'ricorrente') {
-                html += `
-                    <div class="event-detail-row">
-                        <span class="event-detail-label">🏁 Fino al:</span>
-                        <span class="event-detail-value">${evento.extendedProps.dataFine}</span>
-                    </div>
-                `;
-            }
+
             
             if (evento.extendedProps.settori && evento.extendedProps.settori !== 'N/A') {
                 html += `
@@ -340,23 +303,7 @@ const EventManager = {
                 `;
             }
             
-            if (evento.extendedProps.dataInizio && evento.extendedProps.dataInizio !== 'N/A') {
-                html += `
-                    <div class="event-detail-row">
-                        <span class="event-detail-label">🚀 Data Inizio:</span>
-                        <span class="event-detail-value">${evento.extendedProps.dataInizio}</span>
-                    </div>
-                `;
-            }
-            
-            if (evento.extendedProps.dataFine && evento.extendedProps.dataFine !== 'N/A') {
-                html += `
-                    <div class="event-detail-row">
-                        <span class="event-detail-label">🏁 Data Fine:</span>
-                        <span class="event-detail-value">${evento.extendedProps.dataFine}</span>
-                    </div>
-                `;
-            }
+
         }
         
         // Aggiungi campi comuni
@@ -410,19 +357,7 @@ const EventManager = {
                     dettagli += ` | 📍 ${evento.extendedProps.luogo}`;
                 }
                 
-                // Aggiungi informazioni sulla ricorrenza per mercatini
-                if (evento.extendedProps.tipo === 'mercatino' && evento.extendedProps.giorno && evento.extendedProps.giorno !== 'N/A') {
-                    let validita = '';
-                    if (evento.extendedProps.dataInizio === 'ricorrente') {
-                        validita = ' | 🔄 Ricorrente tutto l\'anno';
-                    } else if (evento.extendedProps.dataInizio && evento.extendedProps.dataInizio !== 'N/A') {
-                        validita = ` | 📅 Dal ${evento.extendedProps.dataInizio}`;
-                        if (evento.extendedProps.dataFine && evento.extendedProps.dataFine !== 'N/A' && evento.extendedProps.dataFine !== 'ricorrente') {
-                            validita += ` al ${evento.extendedProps.dataFine}`;
-                        }
-                    }
-                    dettagli += validita;
-                }
+
                 
                 html += `
                     <div class="event-item">
@@ -471,19 +406,7 @@ const EventManager = {
                 dettagli += ` | 🏷️ ${evento.extendedProps.tipologia}`;
             }
             
-            // Aggiungi informazioni sulla ricorrenza per mercatini
-            if (evento.extendedProps.tipo === 'mercatino' && evento.extendedProps.giorno && evento.extendedProps.giorno !== 'N/A') {
-                let validita = '';
-                if (evento.extendedProps.dataInizio === 'ricorrente') {
-                    validita = ' | 🔄 Ricorrente tutto l\'anno';
-                } else if (evento.extendedProps.dataInizio && evento.extendedProps.dataInizio !== 'N/A') {
-                    validita = ` | 📅 Dal ${evento.extendedProps.dataInizio}`;
-                    if (evento.extendedProps.dataFine && evento.extendedProps.dataFine !== 'N/A' && evento.extendedProps.dataFine !== 'ricorrente') {
-                        validita += ` al ${evento.extendedProps.dataFine}`;
-                    }
-                }
-                dettagli += validita;
-            }
+
             
             html += `
                 <div class="event-item">

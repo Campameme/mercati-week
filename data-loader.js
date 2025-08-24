@@ -21,10 +21,6 @@ const DataLoader = {
             this.aggiornaCalendario();
             EventManager.aggiornaEventiVicini();
             
-            // Mostra riepilogo
-            const totaleEventi = this.mercatini.length + this.fiere.length;
-            Logger.info(`📊 Riepilogo caricamento: ${this.mercatini.length} mercatini, ${this.fiere.length} fiere, ${totaleEventi} eventi totali`);
-            
             return true;
             
         } catch (error) {
@@ -46,7 +42,6 @@ const DataLoader = {
             
             const data = await response.text();
             Logger.info(`📊 Dati mercatini ricevuti: ${data.length} caratteri`);
-            Logger.debug('🔍 Primi 200 caratteri:', data.substring(0, 200));
             
             return new Promise((resolve, reject) => {
                 Papa.parse(data, {
@@ -55,8 +50,6 @@ const DataLoader = {
                     skipEmptyLines: true,
                     complete: (results) => {
                         Logger.success(`✅ Parsing mercatini completato: ${results.data.length} righe`);
-                        Logger.debug('🔍 Colonne disponibili:', Object.keys(results.data[0] || {}));
-                        Logger.debug('🔍 Prima riga:', results.data[0]);
                         
                         // Filtra solo i mercatini
                         this.mercatini = results.data.filter(item => {
@@ -70,15 +63,7 @@ const DataLoader = {
                             const hasRequiredFields = dati.comune && 
                                                     (dati.giorno || dati.dataInizio || dati.mese);
                             
-                            const isValid = isMercatino && hasRequiredFields;
-                            
-                            if (!isValid) {
-                                Logger.debug(`Mercatino scartato: ${dati.comune} - isMercatino: ${isMercatino}, hasRequiredFields: ${hasRequiredFields}`);
-                            } else {
-                                Logger.success(`Mercatino valido: ${dati.comune}`);
-                            }
-                            
-                            return isValid;
+                            return isMercatino && hasRequiredFields;
                         });
                         
                         Logger.success(`Mercatini validi: ${this.mercatini.length}`);
@@ -110,7 +95,6 @@ const DataLoader = {
             
             const data = await response.text();
             Logger.info(`📊 Dati fiere ricevuti: ${data.length} caratteri`);
-            Logger.debug('🔍 Primi 200 caratteri:', data.substring(0, 200));
             
             return new Promise((resolve, reject) => {
                 Papa.parse(data, {
@@ -119,8 +103,6 @@ const DataLoader = {
                     skipEmptyLines: true,
                     complete: (results) => {
                         Logger.success(`✅ Parsing fiere completato: ${results.data.length} righe`);
-                        Logger.debug('🔍 Colonne disponibili:', Object.keys(results.data[0] || {}));
-                        Logger.debug('🔍 Prima riga:', results.data[0]);
                         
                         // Filtra solo le fiere/eventi (tutto tranne mercatini)
                         this.fiere = results.data.filter(item => {
@@ -134,15 +116,7 @@ const DataLoader = {
                             const hasRequiredFields = dati.comune && 
                                                     (dati.dataInizio || dati.mese || dati.giorno);
                             
-                            const isValid = isNotMercatino && hasRequiredFields;
-                            
-                            if (!isValid) {
-                                Logger.debug(`Fiera scartata: ${dati.comune || dati.evento} - isNotMercatino: ${isNotMercatino}, hasRequiredFields: ${hasRequiredFields}`);
-                            } else {
-                                Logger.success(`Fiera valida: ${dati.comune || dati.evento}`);
-                            }
-                            
-                            return isValid;
+                            return isNotMercatino && hasRequiredFields;
                         });
                         
                         Logger.success(`Fiere valide: ${this.fiere.length}`);
@@ -174,41 +148,33 @@ const DataLoader = {
         
         // Aggiungi mercatini
         Logger.info('🛒 Aggiunta mercatini al calendario...');
-        this.mercatini.forEach((mercatino, index) => {
+        this.mercatini.forEach((mercatino) => {
             const dati = Utils.validaDati(mercatino);
-            Logger.debug(`🔍 Processando mercatino ${index + 1}: ${dati.comune} - ${dati.giorno || dati.dataInizio || dati.mese}`);
             
             let date = null;
             
             // Prova prima con Giorno (per ricorrenze)
             if (dati.giorno) {
-                Logger.debug(`🔍 Tentativo con Giorno ricorrente: ${dati.giorno}`);
                 date = Utils.generaDateMercatino(dati.giorno, anno, CONFIG.CALENDAR.MONTHS_TO_GENERATE, dati.dataInizio, dati.dataFine);
-                Logger.debug(`📅 Risultato generazione date: ${date ? date.length : 0} date`);
             }
             
             // Se non funziona, prova con Data inizio
             if (!date && dati.dataInizio) {
-                Logger.debug(`🔍 Tentativo con Data inizio: ${dati.dataInizio}`);
                 date = Utils.generaDataFiera(dati.dataInizio, anno);
                 if (date) {
                     date = [date]; // Converti in array per compatibilità
-                    Logger.success(`✅ Data inizio convertita in array: ${date}`);
                 }
             }
             
             // Se non funziona, prova con Mese
             if (!date && dati.mese) {
-                Logger.debug(`🔍 Tentativo con Mese: ${dati.mese}`);
                 date = Utils.generaDataFiera(dati.mese, anno);
                 if (date) {
                     date = [date]; // Converti in array per compatibilità
-                    Logger.success(`✅ Mese convertito in array: ${date}`);
                 }
             }
             
             if (date && date.length > 0) {
-                Logger.success(`Date generate con successo: ${date.length} date`);
                 const eventi = date.map(dataSingola => ({
                     title: `🛒 ${dati.comune}`,
                     start: dataSingola,
@@ -231,9 +197,6 @@ const DataLoader = {
                 
                 CalendarManager.addEvents(eventi);
                 eventiAggiunti += eventi.length;
-                
-            } else {
-                Logger.warning(`Nessuna data valida per mercatino: ${dati.comune}`);
             }
         });
         
@@ -243,37 +206,24 @@ const DataLoader = {
         Logger.info('🎪 Aggiunta fiere al calendario...');
         let fiereAggiunte = 0;
         
-        this.fiere.forEach((fiera, index) => {
+        this.fiere.forEach((fiera) => {
             const dati = Utils.validaDati(fiera);
-            Logger.debug(`🔍 Processando fiera ${index + 1}: ${dati.evento || dati.comune} - ${dati.dataInizio || dati.mese}`);
             
             let date = null;
             
             // Prova prima con Data inizio
             if (dati.dataInizio) {
-                Logger.debug(`🔍 Tentativo con Data inizio: ${dati.dataInizio}`);
                 date = Utils.generaDataFiera(dati.dataInizio, anno);
-                if (date) {
-                    Logger.success(`✅ Data inizio generata: ${date}`);
-                }
             }
             
             // Se non funziona, prova con Mese
             if (!date && dati.mese) {
-                Logger.debug(`🔍 Tentativo con Mese: ${dati.mese}`);
                 date = Utils.generaDataFiera(dati.mese, anno);
-                if (date) {
-                    Logger.success(`✅ Mese generato: ${date}`);
-                }
             }
             
             // Se non funziona, prova con Giorno
             if (!date && dati.giorno) {
-                Logger.debug(`🔍 Tentativo con Giorno: ${dati.giorno}`);
                 date = Utils.generaDataFiera(dati.giorno, anno);
-                if (date) {
-                    Logger.success(`✅ Giorno generato: ${date}`);
-                }
             }
             
             if (date) {
@@ -301,9 +251,6 @@ const DataLoader = {
                 if (CalendarManager.addEvent(evento)) {
                     fiereAggiunte++;
                 }
-                
-            } else {
-                Logger.warning(`Nessuna data valida per fiera: ${dati.evento || dati.comune}`);
             }
         });
         
