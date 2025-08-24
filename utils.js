@@ -415,11 +415,11 @@ const CalendarManager = {
             eventClick: (info) => this.onEventClick(info.event),
             dateClick: (info) => this.onDayClick(info.dateStr),
             eventClassNames: (arg) => this.getEventClassNames(arg),
-            dayMaxEvents: 4, // Mostra max 4 eventi + link "altri"
-            moreLinkClick: this.onMoreLinkClick.bind(this),
-            moreLinkText: function(num) {
-                return `+${num} altri`;
-            },
+            dayMaxEvents: false, // Mostra tutti gli eventi per ora
+            // moreLinkClick: this.onMoreLinkClick.bind(this),
+            // moreLinkText: function(num) {
+            //     return `+${num} altri`;
+            // },
             eventTimeFormat: {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -647,20 +647,33 @@ const DataLoader = {
                         Logger.success(`✅ Parsing eventi completato: ${results.data.length} righe`);
                         
                         // Filtra e processa tutti gli eventi
-                        this.mercatini = results.data.filter(item => {
+                        this.mercatini = results.data.filter((item, index) => {
                             const dati = Utils.validaDati(item);
-                            console.log('🔍 Processando item:', dati);
+                            console.log(`🔍 Processando item ${index + 1}:`, dati);
                             
-                            // Verifica che abbia i campi necessari base
-                            const hasRequiredFields = dati.comune && dati.tipologia && dati.giornoRicorrente;
+                            // Per Imperia, aggiungi debug specifico
+                            if (dati.comune && dati.comune.toLowerCase().includes('imperia')) {
+                                console.log('🎯 IMPERIA TROVATA:', {
+                                    comune: dati.comune,
+                                    tipologia: dati.tipologia,
+                                    dataInizio: dati.dataInizio,
+                                    dataFine: dati.dataFine,
+                                    giornoRicorrente: dati.giornoRicorrente,
+                                    oggettoCompleto: dati
+                                });
+                            }
+                            
+                            // Verifica che abbia almeno comune e qualche informazione temporale
+                            const hasRequiredFields = dati.comune && 
+                                (dati.tipologia || dati.giornoRicorrente || dati.dataInizio || dati.dataFine);
                             
                             if (!hasRequiredFields) {
-                                console.log('⚠️ Mancano campi richiesti per:', dati.comune);
+                                console.log('⚠️ Mancano campi richiesti per:', dati.comune, dati);
                                 return false;
                             }
                             
-                            // Tutti gli eventi sono validi (mercatini e fiere sono nella stessa tabella ora)
-                            console.log('✅ Evento valido:', dati.comune, '-', dati.tipologia);
+                            // Tutti gli eventi con info minime sono validi
+                            console.log('✅ Evento valido:', dati.comune, '-', dati.tipologia || 'NO TIPOLOGIA');
                             return true;
                         });
                         
@@ -746,14 +759,24 @@ const DataLoader = {
         
         // Aggiungi mercatini
         Logger.info('🛒 Aggiunta mercatini al calendario...');
-        this.mercatini.forEach((mercatino) => {
+        this.mercatini.forEach((mercatino, index) => {
             const dati = Utils.validaDati(mercatino);
+            console.log(`🔍 Processando evento calendario ${index + 1}:`, dati);
+            
+            // Debug specifico per Imperia
+            if (dati.comune && dati.comune.toLowerCase().includes('imperia')) {
+                console.log('🎯 PROCESSANDO IMPERIA nel calendario:', dati);
+            }
             
             let date = null;
             
             // Usa la nuova logica basata su giornoRicorrente
             if (dati.giornoRicorrente) {
+                console.log(`📅 Generando date per ${dati.comune} con giorno: ${dati.giornoRicorrente}`);
                 date = Utils.generaDateMercatino(dati, anno, CONFIG.CALENDAR.MONTHS_TO_GENERATE);
+                console.log(`📊 Date generate per ${dati.comune}:`, date);
+            } else {
+                console.log(`⚠️ Nessun giorno ricorrente per ${dati.comune}`);
             }
             
             // Se non funziona, prova con Data inizio
@@ -1092,21 +1115,31 @@ const EventManager = {
     
     // Mostra dettagli evento tramite ID
     mostraDettagliEventoById(eventoId) {
-        // Trova l'evento nell'array dei dati caricati
-        const evento = DataLoader.mercatini.find(item => {
-            const dati = Utils.validaDati(item);
-            return eventoId.includes(dati.comune);
-        });
+        console.log('🔍 Cercando evento con ID:', eventoId);
         
-        if (!evento) {
-            console.error('Evento non trovato:', eventoId);
-            return;
-        }
-        
-        // Ottieni informazioni aggiuntive dal calendario
+        // Cerca direttamente negli eventi del calendario
         const calendarEvent = CalendarManager.calendar.getEvents().find(e => e.id === eventoId);
         if (calendarEvent) {
+            console.log('✅ Evento trovato nel calendario:', calendarEvent.title);
             this.mostraDettagliEvento(calendarEvent);
+        } else {
+            console.error('❌ Evento non trovato nel calendario:', eventoId);
+            // Fallback: cerca nei dati grezzi
+            const evento = DataLoader.mercatini.find(item => {
+                const dati = Utils.validaDati(item);
+                return eventoId.includes(dati.comune);
+            });
+            
+            if (evento) {
+                console.log('✅ Evento trovato nei dati grezzi, ma non nel calendario');
+                // Crea un evento fittizio per mostrare i dettagli
+                const fakeEvent = {
+                    title: `${evento.comune || 'Evento'}`,
+                    start: new Date().toISOString().split('T')[0],
+                    extendedProps: Utils.validaDati(evento)
+                };
+                this.mostraDettagliEvento(fakeEvent);
+            }
         }
     },
     
