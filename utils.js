@@ -233,8 +233,23 @@ const CalendarManager = {
         Logger.info('Inizializzazione calendario...');
         
         const calendarEl = document.getElementById('calendar');
+        if (!calendarEl) {
+            Logger.error('❌ Elemento calendario non trovato!');
+            return;
+        }
         
-        this.calendar = new FullCalendar.Calendar(calendarEl, {
+        if (typeof FullCalendar === 'undefined') {
+            Logger.error('❌ FullCalendar non caricato!');
+            return;
+        }
+        
+        Logger.info('✅ Elemento calendario trovato, dimensioni:', {
+            width: calendarEl.offsetWidth,
+            height: calendarEl.offsetHeight
+        });
+        
+        try {
+            this.calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: CONFIG.CALENDAR.INITIAL_VIEW,
             locale: CONFIG.CALENDAR.LOCALE,
             headerToolbar: {
@@ -262,7 +277,11 @@ const CalendarManager = {
         });
         
         this.calendar.render();
-        Logger.success('Calendario inizializzato');
+        Logger.success('✅ Calendario inizializzato');
+        } catch (error) {
+            Logger.error('❌ Errore inizializzazione calendario:', error);
+            console.error('Stack trace:', error.stack);
+        }
     },
     
     // Gestisce il click su un evento
@@ -1068,10 +1087,46 @@ const EventManager = {
 console.log('🎬 Setup inizializzazione...');
 
 // Inizializzazione quando il DOM è pronto
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📱 DOM caricato, avvio App.init()...');
+function initApp() {
+    console.log('📱 Tentativo di inizializzazione app...');
+    
+    // Verifica che tutti i componenti necessari siano caricati
+    if (typeof FullCalendar === 'undefined') {
+        console.error('❌ FullCalendar non caricato, riprovo tra 100ms...');
+        setTimeout(initApp, 100);
+        return;
+    }
+    
+    if (typeof bootstrap === 'undefined') {
+        console.error('❌ Bootstrap non caricato, riprovo tra 100ms...');
+        setTimeout(initApp, 100);
+        return;
+    }
+    
+    if (typeof Papa === 'undefined') {
+        console.error('❌ PapaParse non caricato, riprovo tra 100ms...');
+        setTimeout(initApp, 100);
+        return;
+    }
+    
+    // Verifica che l'elemento calendario esista
+    const calendarEl = document.getElementById('calendar');
+    if (!calendarEl) {
+        console.error('❌ Elemento calendario non trovato, riprovo tra 100ms...');
+        setTimeout(initApp, 100);
+        return;
+    }
+    
+    console.log('✅ Tutti i componenti caricati, avvio App.init()...');
     App.init();
-});
+}
+
+// Avvia l'inizializzazione quando il DOM è pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
 
 // Rendi App accessibile globalmente
 window.app = App;
