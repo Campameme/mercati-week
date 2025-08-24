@@ -62,6 +62,12 @@ function inizializzaCalendario() {
     
     calendar.render();
     console.log('✅ Calendario inizializzato');
+    
+    // Forza refresh iniziale
+    setTimeout(() => {
+        calendar.render();
+        console.log('🔄 Refresh iniziale forzato');
+    }, 100);
 }
 
 // ===== CARICAMENTO DATI =====
@@ -84,6 +90,14 @@ async function caricaDatiConPriorita() {
         aggiornaFiltri();
         aggiornaCalendario();
         aggiornaEventiVicini();
+        
+        // Forza refresh finale
+        setTimeout(() => {
+            if (calendar) {
+                calendar.render();
+                console.log('🔄 Refresh finale forzato dopo caricamento dati');
+            }
+        }, 1000);
         
     } catch (error) {
         console.error('❌ Errore durante il caricamento dati:', error);
@@ -355,6 +369,12 @@ function aggiornaCalendario() {
     
     // Forza il refresh del calendario
     calendar.render();
+    
+    // Forza refresh aggiuntivo dopo un breve delay
+    setTimeout(() => {
+        calendar.render();
+        console.log('🔄 Refresh aggiuntivo forzato');
+    }, 500);
 }
 
 // ===== LOGICA DATE =====
