@@ -148,7 +148,9 @@ const Utils = {
         const dateGenerate = this.parseGiornoRicorrente(giornoRicorrente, dataPartenza, dataLimite);
         
         console.log(`📊 Generate ${dateGenerate.length} date per ${comune}`);
-        return dateGenerate.map(d => d.toISOString().split('T')[0]);
+        const dateFormatted = dateGenerate.map(d => d.toISOString().split('T')[0]);
+        console.log(`✅ Date finali per ${comune}:`, dateFormatted.slice(0, 5), dateFormatted.length > 5 ? `... (${dateFormatted.length} totali)` : '');
+        return dateFormatted;
     },
     
     // Nuova funzione per interpretare il "giorno ricorrente"
@@ -519,13 +521,16 @@ const CalendarManager = {
     addEvent(evento) {
         if (this.calendar) {
             try {
+                console.log(`🔄 Tentativo aggiunta evento:`, evento.title, evento.start);
                 this.calendar.addEvent(evento);
-                Logger.success(`Evento aggiunto: ${evento.title} - ${evento.start}`);
+                console.log(`✅ Evento aggiunto: ${evento.title} - ${evento.start}`);
                 return true;
             } catch (error) {
-                Logger.error(`Errore aggiunta evento: ${error.message}`);
+                console.error(`❌ Errore aggiunta evento: ${error.message}`, evento);
                 return false;
             }
+        } else {
+            console.error(`❌ Calendario non inizializzato per evento: ${evento.title}`);
         }
         return false;
     },
@@ -881,8 +886,10 @@ const DataLoader = {
                     }
                 }));
                 
+                console.log(`➕ Aggiungendo ${eventi.length} eventi per ${dati.comune}`);
                 CalendarManager.addEvents(eventi);
                 eventiAggiunti += eventi.length;
+                console.log(`✅ Totale eventi aggiunti finora: ${eventiAggiunti}`);
             }
         });
         
