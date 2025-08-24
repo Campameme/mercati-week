@@ -1,1 +1,589 @@
-
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Eventi - Mercatini e Fiere (DEBUG)</title>
+    
+    <!-- CSS ottimizzato inline per velocità -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #2c3e50; margin-bottom: 10px; }
+        .status-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .status-indicator { width: 12px; height: 12px; border-radius: 50%; background: #28a745; }
+        .status-indicator.offline { background: #dc3545; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .control-group { display: flex; flex-direction: column; }
+        .control-group label { margin-bottom: 5px; font-weight: 600; color: #495057; }
+        .control-group select, .control-group input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+        .calendar-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .fc { font-family: inherit !important; }
+        .fc-event { cursor: pointer; border: none !important; border-radius: 6px !important; }
+        .evento-mercatino { background: #007bff !important; color: white !important; }
+        .evento-fiera { background: #28a745 !important; color: white !important; }
+        .info-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .info-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .info-card h3 { color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
+        .event-list { max-height: 400px; overflow-y: auto; }
+        .event-item { padding: 12px; border: 1px solid #e9ecef; border-radius: 8px; margin-bottom: 10px; background: #f8f9fa; }
+        .event-name { font-weight: 600; color: #2c3e50; margin-bottom: 5px; }
+        .event-details { font-size: 14px; color: #6c757d; }
+        .loading { text-align: center; padding: 40px; color: #6c757d; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #1e7e34; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        .debug-panel { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .debug-panel h4 { color: #495057; margin-bottom: 10px; }
+        .debug-info { font-family: monospace; font-size: 12px; background: white; padding: 10px; border-radius: 4px; border: 1px solid #ced4da; max-height: 200px; overflow-y: auto; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; border-radius: 12px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #6c757d; }
+        .favorite-btn { background: none; border: none; cursor: pointer; font-size: 18px; }
+        .favorite-btn.favorited { color: #dc3545; }
+        .favorite-btn:not(.favorited) { color: #6c757d; }
+        @media (max-width: 768px) { .controls { grid-template-columns: 1fr; } .info-panel { grid-template-columns: 1fr; } }
+    </style>
+    
+    <!-- FullCalendar CSS ottimizzato -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐛 Calendario Eventi - DEBUG MODE</h1>
+            <p>Versione debug per identificare problemi di caricamento dati</p>
+        </div>
+        
+        <!-- PANEL DEBUG -->
+        <div class="debug-panel">
+            <h4>🔍 Debug Info - Controlla la console per dettagli completi</h4>
+            <div class="debug-info" id="debugInfo">
+                Inizializzazione in corso...
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <span id="statusText">Online</span>
+            <button class="btn btn-primary" id="ricaricaDati">🔄 Ricarica dati</button>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="tipoEvento">Tipo Evento</label>
+                <select id="tipoEvento">
+                    <option value="tutti">Tutti gli eventi</option>
+                    <option value="mercatini">Solo mercatini</option>
+                    <option value="fiere">Solo fiere</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="comune">Comune</label>
+                <select id="comune">
+                    <option value="tutti">Tutti i comuni</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="categoriaFilter">Categoria</label>
+                <select id="categoriaFilter">
+                    <option value="tutti">Tutte le categorie</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="calendar-container">
+            <div id="calendar"></div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>🎯 Prossimi Eventi</h3>
+                <div id="prossimiEventi" class="event-list">
+                    <div class="loading">Caricamento eventi...</div>
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <h3>❤️ I Miei Preferiti</h3>
+                <div id="preferiti" class="event-list">
+                    <div class="loading">Caricamento preferiti...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal per dettagli evento -->
+    <div class="modal" id="eventoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Dettagli Evento</h3>
+                <button class="modal-close" onclick="chiudiModal()">&times;</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+    
+    <!-- Scripts ottimizzati -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    
+    <script>
+        // Variabili globali ottimizzate
+        let mercatini = [], fiere = [], comuni = new Set(), categorie = new Set(), preferiti = new Set();
+        let calendar;
+        
+        // Funzione per aggiornare il panel debug
+        function aggiornaDebug(message) {
+            const debugEl = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            debugEl.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            debugEl.scrollTop = debugEl.scrollHeight;
+        }
+        
+        // Inizializzazione ottimizzata
+        document.addEventListener('DOMContentLoaded', function() {
+            aggiornaDebug('🚀 App inizializzata');
+            inizializzaApp();
+        });
+        
+        function inizializzaApp() {
+            aggiornaDebug('📅 Inizializzazione calendario...');
+            inizializzaCalendario();
+            aggiornaDebug('💾 Caricamento preferiti...');
+            caricaPreferiti();
+            aggiornaDebug('📊 Caricamento dati da Google Sheets...');
+            caricaDati();
+            aggiornaDebug('🎯 Setup event listeners...');
+            setupEventListeners();
+            aggiornaStatoOnline();
+            aggiornaDebug('✅ Inizializzazione completata');
+        }
+        
+        function inizializzaCalendario() {
+            calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+                initialView: 'dayGridMonth',
+                locale: 'it',
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listWeek' },
+                height: 'auto',
+                eventClick: mostraDettagliEvento,
+                dateClick: mostraEventiGiorno,
+                events: []
+            });
+            calendar.render();
+            aggiornaDebug('📅 Calendario FullCalendar inizializzato');
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('tipoEvento').addEventListener('change', applicaFiltri);
+            document.getElementById('comune').addEventListener('change', applicaFiltri);
+            document.getElementById('categoriaFilter').addEventListener('change', applicaFiltri);
+            document.getElementById('ricaricaDati').addEventListener('click', ricaricaDati);
+            window.addEventListener('online', aggiornaStatoOnline);
+            window.addEventListener('offline', aggiornaStatoOnline);
+            aggiornaDebug('🎧 Event listeners configurati');
+        }
+        
+        async function caricaDati() {
+            try {
+                aggiornaDebug('📥 Avvio caricamento dati...');
+                await Promise.all([
+                    caricaMercatini(),
+                    caricaFiere()
+                ]);
+                aggiornaDebug('✅ Tutti i dati caricati con successo');
+                aggiornaUI();
+            } catch (error) {
+                aggiornaDebug(`❌ Errore caricamento: ${error.message}`);
+                console.error('Errore caricamento:', error);
+            }
+        }
+        
+        async function caricaMercatini() {
+            const url = 'https://docs.google.com/spreadsheets/d/1dGB3f47TrT_dVz5PsICci4JuoTWRBQAcPuXjDIYSE58/gviz/tq?tqx=out:csv&sheet=Foglio1';
+            aggiornaDebug(`📊 Caricamento mercatini da: ${url}`);
+            
+            const response = await fetch(url);
+            const data = await response.text();
+            
+            aggiornaDebug(`📥 Mercatini: ${response.status} - ${data.length} caratteri`);
+            aggiornaDebug(`📋 Prima riga: ${data.split('\n')[0]}`);
+            aggiornaDebug(`📋 Seconda riga: ${data.split('\n')[1]}`);
+            
+            return new Promise((resolve) => {
+                Papa.parse(data, {
+                    header: true,
+                    delimiter: ';',
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        aggiornaDebug(`✅ Parsing mercatini: ${results.data.length} righe`);
+                        aggiornaDebug(`🏷️ Colonne: ${Object.keys(results.data[0] || {}).join(', ')}`);
+                        
+                        mercatini = results.data.filter(item => item.Comune && item.Comune.trim());
+                        aggiornaDebug(`🎯 Mercatini validi: ${mercatini.length}`);
+                        
+                        if (mercatini.length > 0) {
+                            aggiornaDebug(`📍 Primo mercatino: ${mercatini[0].Comune} - ${mercatini[0].Giorno}`);
+                        }
+                        
+                        mercatini.forEach(m => {
+                            if (m.Comune) comuni.add(m.Comune.trim());
+                            if (m["Settori merceologici"]) {
+                                m["Settori merceologici"].split('/').forEach(s => {
+                                    if (s.trim()) categorie.add(s.trim());
+                                });
+                            }
+                        });
+                        
+                        aggiornaDebug(`🏘️ Comuni trovati: ${Array.from(comuni).join(', ')}`);
+                        aggiornaDebug(`🏷️ Categorie: ${Array.from(categorie).join(', ')}`);
+                        
+                        resolve();
+                    },
+                    error: (error) => {
+                        aggiornaDebug(`❌ Errore parsing mercatini: ${error.message}`);
+                        console.error('Errore parsing mercatini:', error);
+                        resolve();
+                    }
+                });
+            });
+        }
+        
+        async function caricaFiere() {
+            const url = 'https://docs.google.com/spreadsheets/d/1oa6pz7U79YyD8hey2lANS-x6nMCHnaKBC2LtEIsMyTQ/gviz/tq?tqx=out:csv&sheet=Foglio1';
+            aggiornaDebug(`🎪 Caricamento fiere da: ${url}`);
+            
+            const response = await fetch(url);
+            const data = await response.text();
+            
+            aggiornaDebug(`📥 Fiere: ${response.status} - ${data.length} caratteri`);
+            aggiornaDebug(`📋 Prima riga: ${data.split('\n')[0]}`);
+            aggiornaDebug(`📋 Seconda riga: ${data.split('\n')[1]}`);
+            
+            return new Promise((resolve) => {
+                Papa.parse(data, {
+                    header: true,
+                    delimiter: ';',
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        aggiornaDebug(`✅ Parsing fiere: ${results.data.length} righe`);
+                        aggiornaDebug(`🏷️ Colonne: ${Object.keys(results.data[0] || {}).join(', ')}`);
+                        
+                        fiere = results.data.filter(item => item.Comune && item.Comune.trim());
+                        aggiornaDebug(`🎯 Fiere valide: ${fiere.length}`);
+                        
+                        if (fiere.length > 0) {
+                            aggiornaDebug(`📍 Prima fiera: ${fiere[0].Comune} - ${fiere[0].Denominazione}`);
+                        }
+                        
+                        fiere.forEach(f => {
+                            if (f.Comune) comuni.add(f.Comune.trim());
+                            if (f["Settori merceologici"]) {
+                                f["Settori merceologici"].split('/').forEach(s => {
+                                    if (s.trim()) categorie.add(s.trim());
+                                });
+                            }
+                        });
+                        
+                        aggiornaDebug(`🏘️ Comuni totali: ${Array.from(comuni).join(', ')}`);
+                        aggiornaDebug(`🏷️ Categorie totali: ${Array.from(categorie).join(', ')}`);
+                        
+                        resolve();
+                    },
+                    error: (error) => {
+                        aggiornaDebug(`❌ Errore parsing fiere: ${error.message}`);
+                        console.error('Errore parsing fiere:', error);
+                        resolve();
+                    }
+                });
+            });
+        }
+        
+        function aggiornaUI() {
+            aggiornaDebug('🎨 Aggiornamento interfaccia...');
+            aggiornaFiltri();
+            generaEventiCalendario();
+            aggiornaProssimiEventi();
+            aggiornaPreferiti();
+            aggiornaDebug('✅ Interfaccia aggiornata');
+        }
+        
+        function aggiornaFiltri() {
+            const comuneSelect = document.getElementById('comune');
+            const categoriaSelect = document.getElementById('categoriaFilter');
+            
+            comuneSelect.innerHTML = '<option value="tutti">Tutti i comuni</option>';
+            categoriaSelect.innerHTML = '<option value="tutti">Tutte le categorie</option>';
+            
+            Array.from(comuni).sort().forEach(comune => {
+                comuneSelect.innerHTML += `<option value="${comune}">${comune}</option>`;
+            });
+            
+            Array.from(categorie).sort().forEach(categoria => {
+                categoriaSelect.innerHTML += `<option value="${categoria}">${categoria}</option>`;
+            });
+            
+            aggiornaDebug(`🎛️ Filtri aggiornati: ${comuni.size} comuni, ${categorie.size} categorie`);
+        }
+        
+        function generaEventiCalendario() {
+            aggiornaDebug('📅 Generazione eventi calendario...');
+            calendar.removeAllEvents();
+            
+            const tipoEvento = document.getElementById('tipoEvento').value;
+            const comuneSelezionato = document.getElementById('comune').value;
+            const categoriaSelezionata = document.getElementById('categoriaFilter').value;
+            
+            aggiornaDebug(`🎯 Filtri: ${tipoEvento} - ${comuneSelezionato} - ${categoriaSelezionata}`);
+            
+            if (tipoEvento === 'tutti' || tipoEvento === 'mercatini') {
+                aggiornaDebug(`🛒 Aggiunta ${mercatini.length} mercatini al calendario`);
+                mercatini.forEach(mercatino => {
+                    if (comuneSelezionato !== 'tutti' && mercatino.Comune !== comuneSelezionato) return;
+                    if (categoriaSelezionata !== 'tutti' && !mercatino["Settori merceologici"]?.includes(categoriaSelezionata)) return;
+                    
+                    const eventi = creaDateMercatino(mercatino);
+                    aggiornaDebug(`📅 Mercatino ${mercatino.Comune}: ${eventi.length} date generate`);
+                    
+                    eventi.forEach(data => {
+                        calendar.addEvent({
+                            title: `Mercatino a ${mercatino.Comune}`,
+                            start: data,
+                            allDay: true,
+                            extendedProps: { tipo: 'mercatino', dettagli: mercatino },
+                            className: 'evento-mercatino'
+                        });
+                    });
+                });
+            }
+            
+            if (tipoEvento === 'tutti' || tipoEvento === 'fiere') {
+                aggiornaDebug(`🎪 Aggiunta ${fiere.length} fiere al calendario`);
+                fiere.forEach(fiera => {
+                    if (comuneSelezionato !== 'tutti' && fiera.Comune !== comuneSelezionato) return;
+                    if (categoriaSelezionata !== 'tutti' && !fiera["Settori merceologici"]?.includes(categoriaSelezionata)) return;
+                    
+                    const eventi = creaDateFiera(fiera);
+                    aggiornaDebug(`📅 Fiera ${fiera.Comune}: ${eventi.length} date generate`);
+                    
+                    eventi.forEach(intervallo => {
+                        calendar.addEvent({
+                            title: fiera.Denominazione || `Fiera a ${fiera.Comune}`,
+                            start: intervallo.start,
+                            end: intervallo.end,
+                            allDay: true,
+                            extendedProps: { tipo: 'fiera', dettagli: fiera },
+                            className: 'evento-fiera'
+                        });
+                    });
+                });
+            }
+            
+            const totalEvents = calendar.getEvents().length;
+            aggiornaDebug(`✅ Calendario aggiornato: ${totalEvents} eventi totali`);
+        }
+        
+        function creaDateMercatino(mercatino) {
+            const anno = new Date().getFullYear();
+            const eventi = [];
+            const giorno = mercatino.Giorno.toLowerCase();
+            
+            aggiornaDebug(`🔍 Creazione date per mercatino: ${mercatino.Comune} - ${mercatino.Giorno}`);
+            
+            // Giorni settimanali semplici
+            const giorniMap = {
+                'lunedì': 1, 'martedì': 2, 'mercoledì': 3, 
+                'giovedì': 4, 'venerdì': 5, 'sabato': 6, 'domenica': 0
+            };
+            
+            for (const [nome, numero] of Object.entries(giorniMap)) {
+                if (giorno.includes(nome)) {
+                    aggiornaDebug(`📅 Trovato giorno settimanale: ${nome} (${numero})`);
+                    for (let mese = 0; mese < 12; mese++) {
+                        const data = new Date(anno, mese, 1);
+                        while (data.getDay() !== numero) {
+                            data.setDate(data.getDate() + 1);
+                        }
+                        while (data.getMonth() === mese) {
+                            eventi.push(data.toISOString().split('T')[0]);
+                            data.setDate(data.getDate() + 7);
+                        }
+                    }
+                    break;
+                }
+            }
+            
+            aggiornaDebug(`📅 Date generate per ${mercatino.Comune}: ${eventi.length}`);
+            return eventi;
+        }
+        
+        function creaDateFiera(fiera) {
+            const eventi = [];
+            const dataInizio = fiera["Data inizio"];
+            const dataFine = fiera["Data fine"];
+            
+            aggiornaDebug(`🔍 Creazione date per fiera: ${fiera.Comune} - ${dataInizio} al ${dataFine}`);
+            
+            if (dataInizio && dataFine) {
+                const [giornoInizio, meseInizio] = dataInizio.split('/');
+                const [giornoFine, meseFine] = dataFine.split('/');
+                
+                if (giornoInizio && meseInizio && giornoFine && meseFine) {
+                    const anno = new Date().getFullYear();
+                    const start = new Date(anno, parseInt(meseInizio) - 1, parseInt(giornoInizio));
+                    const end = new Date(anno, parseInt(meseFine) - 1, parseInt(giornoFine));
+                    
+                    eventi.push({ start, end });
+                    aggiornaDebug(`📅 Date fiera ${fiera.Comune}: ${start.toLocaleDateString()} - ${end.toLocaleDateString()}`);
+                }
+            }
+            
+            return eventi;
+        }
+        
+        function applicaFiltri() {
+            aggiornaDebug('🎛️ Applicazione filtri...');
+            generaEventiCalendario();
+            aggiornaProssimiEventi();
+        }
+        
+        function aggiornaProssimiEventi() {
+            const container = document.getElementById('prossimiEventi');
+            const eventi = calendar.getEvents().sort((a, b) => new Date(a.start) - new Date(b.start));
+            const prossimi = eventi.slice(0, 10);
+            
+            aggiornaDebug(`📋 Prossimi eventi: ${prossimi.length} trovati`);
+            
+            container.innerHTML = prossimi.length ? prossimi.map(evento => `
+                <div class="event-item">
+                    <div class="event-name">${evento.title}</div>
+                    <div class="event-details">${new Date(evento.start).toLocaleDateString('it-IT')}</div>
+                </div>
+            `).join('') : '<div class="loading">Nessun evento imminente</div>';
+        }
+        
+        function aggiornaPreferiti() {
+            const container = document.getElementById('preferiti');
+            const preferitiList = Array.from(preferiti).map(id => {
+                const [comune, giorno] = id.split('-');
+                return `<div class="event-item">
+                    <div class="event-name">${comune}</div>
+                    <div class="event-details">${giorno}</div>
+                    <button class="favorite-btn favorited" onclick="togglePreferito('${id}')">❤️</button>
+                </div>`;
+            });
+            
+            container.innerHTML = preferitiList.length ? preferitiList.join('') : '<div class="loading">Nessun preferito</div>';
+            aggiornaDebug(`❤️ Preferiti aggiornati: ${preferiti.size}`);
+        }
+        
+        function mostraDettagliEvento(info) {
+            const evento = info.event;
+            const dettagli = evento.extendedProps.dettagli;
+            
+            document.getElementById('modalTitle').textContent = evento.title;
+            document.getElementById('modalBody').innerHTML = `
+                <p><strong>Comune:</strong> ${dettagli.Comune}</p>
+                <p><strong>Data:</strong> ${new Date(evento.start).toLocaleDateString('it-IT')}</p>
+                <p><strong>Settori:</strong> ${dettagli["Settori merceologici"] || 'Non specificato'}</p>
+                <p><strong>Luogo:</strong> ${dettagli["Luogo di svolgimento"] || 'Non specificato'}</p>
+                <p><strong>Organizzatore:</strong> ${dettagli["Soggetto organizzatore"] || 'Non specificato'}</p>
+                ${evento.extendedProps.tipo === 'mercatino' ? 
+                    `<button class="btn btn-warning" onclick="togglePreferito('${dettagli.Comune}-${dettagli.Giorno}')">
+                        ${preferiti.has(`${dettagli.Comune}-${dettagli.Giorno}`) ? '❤️ Rimosso' : '🤍 Aggiungi ai preferiti'}
+                    </button>` : ''
+                }
+            `;
+            
+            document.getElementById('eventoModal').classList.add('show');
+        }
+        
+        function mostraEventiGiorno(info) {
+            const data = info.dateStr;
+            const eventi = calendar.getEvents().filter(e => e.startStr === data);
+            
+            document.getElementById('modalTitle').textContent = `Eventi del ${new Date(data).toLocaleDateString('it-IT')}`;
+            document.getElementById('modalBody').innerHTML = eventi.length ? eventi.map(evento => `
+                <div class="event-item">
+                    <div class="event-name">${evento.title}</div>
+                    <div class="event-details">${evento.extendedProps.dettagli["Settori merceologici"] || 'Non specificato'}</div>
+                    ${evento.extendedProps.tipo === 'mercatino' ? 
+                        `<button class="btn btn-warning" onclick="togglePreferito('${evento.extendedProps.dettagli.Comune}-${evento.extendedProps.dettagli.Giorno}')">
+                            ${preferiti.has(`${evento.extendedProps.dettagli.Comune}-${evento.extendedProps.dettagli.Giorno}`) ? '❤️ Rimosso' : '🤍 Aggiungi ai preferiti'}
+                        </button>` : ''
+                    }
+                </div>
+            `).join('') : '<p>Nessun evento per questa data</p>';
+            
+            document.getElementById('eventoModal').classList.add('show');
+        }
+        
+        function chiudiModal() {
+            document.getElementById('eventoModal').classList.remove('show');
+        }
+        
+        function togglePreferito(id) {
+            if (preferiti.has(id)) {
+                preferiti.delete(id);
+            } else {
+                preferiti.add(id);
+            }
+            salvaPreferiti();
+            aggiornaPreferiti();
+        }
+        
+        function caricaPreferiti() {
+            const salvati = localStorage.getItem('preferiti');
+            if (salvati) {
+                preferiti = new Set(JSON.parse(salvati));
+            }
+        }
+        
+        function salvaPreferiti() {
+            localStorage.setItem('preferiti', JSON.stringify(Array.from(preferiti)));
+        }
+        
+        function ricaricaDati() {
+            const btn = document.getElementById('ricaricaDati');
+            btn.disabled = true;
+            btn.textContent = '🔄 Ricaricamento...';
+            
+            aggiornaDebug('🔄 Ricaricamento dati...');
+            
+            caricaDati().then(() => {
+                btn.disabled = false;
+                btn.textContent = '🔄 Ricarica dati';
+                aggiornaDebug('✅ Ricaricamento completato');
+            });
+        }
+        
+        function aggiornaStatoOnline() {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            
+            if (navigator.onLine) {
+                indicator.classList.remove('offline');
+                text.textContent = 'Online';
+            } else {
+                indicator.classList.add('offline');
+                text.textContent = 'Offline';
+            }
+        }
+        
+        // Chiudi modal cliccando fuori
+        document.getElementById('eventoModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                chiudiModal();
+            }
+        });
+    </script>
+</body>
+</html>
