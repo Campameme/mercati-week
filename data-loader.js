@@ -5,7 +5,7 @@ const DataLoader = {
     
     // Carica tutti i dati
     async caricaDati() {
-        Logger.info('Avvio caricamento dati...');
+        Logger.info('🚀 Avvio caricamento dati...');
         
         try {
             // Carica entrambi i dataset in parallelo
@@ -14,7 +14,7 @@ const DataLoader = {
                 this.caricaFiere()
             ]);
             
-            Logger.success('Tutti i dati caricati');
+            Logger.success('✅ Tutti i dati caricati');
             
             // Aggiorna UI
             FilterManager.aggiornaFiltri();
@@ -23,12 +23,12 @@ const DataLoader = {
             
             // Mostra riepilogo
             const totaleEventi = this.mercatini.length + this.fiere.length;
-            Logger.info(`Riepilogo caricamento: ${this.mercatini.length} mercatini, ${this.fiere.length} fiere, ${totaleEventi} eventi totali`);
+            Logger.info(`📊 Riepilogo caricamento: ${this.mercatini.length} mercatini, ${this.fiere.length} fiere, ${totaleEventi} eventi totali`);
             
             return true;
             
         } catch (error) {
-            Logger.error('Errore durante il caricamento dati:', error);
+            Logger.error('❌ Errore durante il caricamento dati:', error);
             throw error;
         }
     },
@@ -45,7 +45,8 @@ const DataLoader = {
             }
             
             const data = await response.text();
-            Logger.info(`Dati mercatini ricevuti: ${data.length} caratteri`);
+            Logger.info(`📊 Dati mercatini ricevuti: ${data.length} caratteri`);
+            Logger.debug('🔍 Primi 200 caratteri:', data.substring(0, 200));
             
             return new Promise((resolve, reject) => {
                 Papa.parse(data, {
@@ -53,8 +54,9 @@ const DataLoader = {
                     delimiter: ',',
                     skipEmptyLines: true,
                     complete: (results) => {
-                        Logger.success(`Parsing mercatini completato: ${results.data.length} righe`);
-                        Logger.debug('Colonne disponibili:', Object.keys(results.data[0] || {}));
+                        Logger.success(`✅ Parsing mercatini completato: ${results.data.length} righe`);
+                        Logger.debug('🔍 Colonne disponibili:', Object.keys(results.data[0] || {}));
+                        Logger.debug('🔍 Prima riga:', results.data[0]);
                         
                         // Filtra solo i mercatini
                         this.mercatini = results.data.filter(item => {
@@ -107,7 +109,8 @@ const DataLoader = {
             }
             
             const data = await response.text();
-            Logger.info(`Dati fiere ricevuti: ${data.length} caratteri`);
+            Logger.info(`📊 Dati fiere ricevuti: ${data.length} caratteri`);
+            Logger.debug('🔍 Primi 200 caratteri:', data.substring(0, 200));
             
             return new Promise((resolve, reject) => {
                 Papa.parse(data, {
@@ -115,8 +118,9 @@ const DataLoader = {
                     delimiter: ',',
                     skipEmptyLines: true,
                     complete: (results) => {
-                        Logger.success(`Parsing fiere completato: ${results.data.length} righe`);
-                        Logger.debug('Colonne disponibili:', Object.keys(results.data[0] || {}));
+                        Logger.success(`✅ Parsing fiere completato: ${results.data.length} righe`);
+                        Logger.debug('🔍 Colonne disponibili:', Object.keys(results.data[0] || {}));
+                        Logger.debug('🔍 Prima riga:', results.data[0]);
                         
                         // Filtra solo le fiere/eventi (tutto tranne mercatini)
                         this.fiere = results.data.filter(item => {
@@ -169,36 +173,37 @@ const DataLoader = {
         const anno = oggi.getFullYear();
         
         // Aggiungi mercatini
-        Logger.info('Aggiunta mercatini al calendario...');
+        Logger.info('🛒 Aggiunta mercatini al calendario...');
         this.mercatini.forEach((mercatino, index) => {
             const dati = Utils.validaDati(mercatino);
-            Logger.debug(`Processando mercatino ${index + 1}: ${dati.comune} - ${dati.giorno || dati.dataInizio || dati.mese}`);
+            Logger.debug(`🔍 Processando mercatino ${index + 1}: ${dati.comune} - ${dati.giorno || dati.dataInizio || dati.mese}`);
             
             let date = null;
             
             // Prova prima con Giorno (per ricorrenze)
             if (dati.giorno) {
-                Logger.debug(`Tentativo con Giorno ricorrente: ${dati.giorno}`);
+                Logger.debug(`🔍 Tentativo con Giorno ricorrente: ${dati.giorno}`);
                 date = Utils.generaDateMercatino(dati.giorno, anno, CONFIG.CALENDAR.MONTHS_TO_GENERATE, dati.dataInizio, dati.dataFine);
+                Logger.debug(`📅 Risultato generazione date: ${date ? date.length : 0} date`);
             }
             
             // Se non funziona, prova con Data inizio
             if (!date && dati.dataInizio) {
-                Logger.debug(`Tentativo con Data inizio: ${dati.dataInizio}`);
+                Logger.debug(`🔍 Tentativo con Data inizio: ${dati.dataInizio}`);
                 date = Utils.generaDataFiera(dati.dataInizio, anno);
                 if (date) {
                     date = [date]; // Converti in array per compatibilità
-                    Logger.success(`Data inizio convertita in array: ${date}`);
+                    Logger.success(`✅ Data inizio convertita in array: ${date}`);
                 }
             }
             
             // Se non funziona, prova con Mese
             if (!date && dati.mese) {
-                Logger.debug(`Tentativo con Mese: ${dati.mese}`);
+                Logger.debug(`🔍 Tentativo con Mese: ${dati.mese}`);
                 date = Utils.generaDataFiera(dati.mese, anno);
                 if (date) {
                     date = [date]; // Converti in array per compatibilità
-                    Logger.success(`Mese convertito in array: ${date}`);
+                    Logger.success(`✅ Mese convertito in array: ${date}`);
                 }
             }
             
@@ -235,39 +240,39 @@ const DataLoader = {
         Logger.success(`Mercatini aggiunti: ${eventiAggiunti} eventi totali`);
         
         // Aggiungi fiere
-        Logger.info('Aggiunta fiere al calendario...');
+        Logger.info('🎪 Aggiunta fiere al calendario...');
         let fiereAggiunte = 0;
         
         this.fiere.forEach((fiera, index) => {
             const dati = Utils.validaDati(fiera);
-            Logger.debug(`Processando fiera ${index + 1}: ${dati.evento || dati.comune} - ${dati.dataInizio || dati.mese}`);
+            Logger.debug(`🔍 Processando fiera ${index + 1}: ${dati.evento || dati.comune} - ${dati.dataInizio || dati.mese}`);
             
             let date = null;
             
             // Prova prima con Data inizio
             if (dati.dataInizio) {
-                Logger.debug(`Tentativo con Data inizio: ${dati.dataInizio}`);
+                Logger.debug(`🔍 Tentativo con Data inizio: ${dati.dataInizio}`);
                 date = Utils.generaDataFiera(dati.dataInizio, anno);
                 if (date) {
-                    Logger.success(`Data inizio generata: ${date}`);
+                    Logger.success(`✅ Data inizio generata: ${date}`);
                 }
             }
             
             // Se non funziona, prova con Mese
             if (!date && dati.mese) {
-                Logger.debug(`Tentativo con Mese: ${dati.mese}`);
+                Logger.debug(`🔍 Tentativo con Mese: ${dati.mese}`);
                 date = Utils.generaDataFiera(dati.mese, anno);
                 if (date) {
-                    Logger.success(`Mese generato: ${date}`);
+                    Logger.success(`✅ Mese generato: ${date}`);
                 }
             }
             
             // Se non funziona, prova con Giorno
             if (!date && dati.giorno) {
-                Logger.debug(`Tentativo con Giorno: ${dati.giorno}`);
+                Logger.debug(`🔍 Tentativo con Giorno: ${dati.giorno}`);
                 date = Utils.generaDataFiera(dati.giorno, anno);
                 if (date) {
-                    Logger.success(`Giorno generato: ${date}`);
+                    Logger.success(`✅ Giorno generato: ${date}`);
                 }
             }
             

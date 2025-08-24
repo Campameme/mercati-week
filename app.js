@@ -511,3 +511,6 @@ const EventManager = {
 document.addEventListener('DOMContentLoaded', function() {
     App.init();
 });
+
+// Rendi App accessibile globalmente
+window.app = App;

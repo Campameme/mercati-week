@@ -24,7 +24,7 @@ const CalendarManager = {
             },
             height: CONFIG.CALENDAR.HEIGHT,
             eventClick: (info) => this.onEventClick(info.event),
-            dayClick: (info) => this.onDayClick(info.dateStr),
+            dateClick: (info) => this.onDayClick(info.dateStr),
             eventClassNames: (arg) => this.getEventClassNames(arg)
         });
         
