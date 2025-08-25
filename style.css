@@ -375,6 +375,17 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* RIMUOVI COMPLETAMENTE IL POPOVER/MENU A TENDINA */
+.fc-popover,
+.fc-popover-header,
+.fc-popover-body,
+.fc-popover-arrow {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
 .responsive-grid {
     display: grid;
     grid-template-columns: 1fr 300px;

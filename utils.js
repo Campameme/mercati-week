@@ -2,15 +2,18 @@
 console.log('🚀 Caricamento utils.js...');
 
 const CONFIG = {
-    // Google Sheets URLs
-    GOOGLE_SHEETS_URL: 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/gviz/tq?tqx=out:csv&sheet=Foglio1',
+    // Google Sheets URLs - Usa endpoint pubblico CSV
+    GOOGLE_SHEETS_URL: 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/export?format=csv&gid=0',
+    
+    // URL alternativo per fallback
+    GOOGLE_SHEETS_FALLBACK: 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/gviz/tq?tqx=out:csv&sheet=Foglio1',
     
     // Impostazioni calendario
     CALENDAR: {
         INITIAL_VIEW: 'dayGridMonth',
         LOCALE: 'it',
         HEIGHT: 'auto',
-        MONTHS_TO_GENERATE: 12
+        MONTHS_TO_GENERATE: 3  // Ridotto a 3 mesi (precedente + corrente + successivo)
     },
     
     // Colori eventi
@@ -20,13 +23,13 @@ const CONFIG = {
         FIERA_TEXT: '#000'
     },
     
-    // Logging
+    // Logging - Abilitato temporaneamente per debug
     DEBUG: true,
     
-    // Timeout e intervalli
+    // Timeout e intervalli - OTTIMIZZATI
     TIMEOUTS: {
-        LOADING: 30000,
-        RENDER_DELAY: 100
+        LOADING: 15000,  // Ridotto da 30s a 15s
+        RENDER_DELAY: 50 // Ridotto da 100ms a 50ms
     }
 };
 
@@ -69,32 +72,50 @@ console.log('🔧 Definizione Utils...');
 
 // Utility per la gestione delle date e dati
 const Utils = {
-    // Genera date per mercatini ricorrenti - NUOVA LOGICA per struttura aggiornata
+    // Cache AGGRESSIVA con timestamp
+    _dateCache: new Map(),
+    _validationCache: new Map(),
+    _cacheTimestamp: Date.now(),
+    
+    // Funzione per pulire la cache (solo se vecchia di più di 5 minuti)
+    clearCache(force = false) {
+        if (force || (Date.now() - this._cacheTimestamp) > 300000) { // 5 minuti
+            this._dateCache.clear();
+            this._validationCache.clear();
+            this._cacheTimestamp = Date.now();
+        }
+    },
+    // Nota: Funzioni di range specifico rimosse - ora usiamo logica semplificata
+    
+    // Genera date per mercatini ricorrenti - LOGICA INTELLIGENTE per tutti i tipi
     generaDateMercatino(dati, anno = new Date().getFullYear(), mesi = CONFIG.CALENDAR.MONTHS_TO_GENERATE) {
         const { dataInizio, dataFine, giornoRicorrente, comune } = dati;
         
-        console.log(`📅 Generazione date per ${comune}:`, { dataInizio, dataFine, giornoRicorrente });
+        // Cache key per evitare ricalcoli
+        const cacheKey = `${comune}_${giornoRicorrente}_${dataInizio}_${dataFine}_${anno}`;
+        if (this._dateCache.has(cacheKey)) {
+            return this._dateCache.get(cacheKey);
+        }
         
         // Verifica che abbiamo il giorno ricorrente
         if (!giornoRicorrente) {
-            console.log('⚠️ Nessun giorno ricorrente specificato');
+            Logger.debug('⚠️ Nessun giorno ricorrente specificato');
             return [];
         }
         
-        const date = [];
         const oggi = new Date();
         
-        // Determina il periodo di validità
+        // Determina il periodo di validità - RANGE ESTESO per mese corrente + precedente + successivo
         let dataPartenza, dataLimite;
         
         if (dataInizio === 'ricorrente' && dataFine === 'ricorrente') {
-            // Valido tutto l'anno - generiamo date per i prossimi mesi
-            console.log('✅ Evento ricorrente tutto l\'anno');
-            dataPartenza = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
-            dataLimite = new Date(oggi.getFullYear(), oggi.getMonth() + mesi, 0);
+            // Valido tutto l'anno - generiamo date dall'inizio dell'anno fino al prossimo anno
+            Logger.debug('✅ Evento ricorrente tutto l\'anno');
+            dataPartenza = new Date(oggi.getFullYear(), 0, 1); // Inizio anno corrente
+            dataLimite = new Date(oggi.getFullYear() + 1, 11, 31); // Fine anno prossimo
         } else {
             // Valido solo per periodo specifico
-            console.log('📅 Evento con periodo limitato');
+            Logger.debug('📅 Evento con periodo limitato');
             
             if (dataInizio && dataInizio !== 'ricorrente') {
                 try {
@@ -102,15 +123,18 @@ const Utils = {
                     if (giornoI && meseI && !isNaN(giornoI) && !isNaN(meseI)) {
                         dataPartenza = new Date(anno, meseI - 1, giornoI);
                     } else {
-                        console.warn(`⚠️ Data inizio non valida per ${comune}: ${dataInizio}`);
-                        dataPartenza = new Date(anno, 0, 1);
+                        Logger.warning(`⚠️ Data inizio non valida per ${comune}: ${dataInizio}`);
+                        // RANGE ESTESO: 1 mese prima del mese corrente
+                        dataPartenza = new Date(oggi.getFullYear(), oggi.getMonth() - 1, 1);
                     }
                 } catch (error) {
-                    console.warn(`⚠️ Errore parsing data inizio per ${comune}: ${dataInizio}`, error);
-                    dataPartenza = new Date(anno, 0, 1);
+                    Logger.warning(`⚠️ Errore parsing data inizio per ${comune}: ${dataInizio}`, error);
+                    // RANGE ESTESO: 1 mese prima del mese corrente
+                    dataPartenza = new Date(oggi.getFullYear(), oggi.getMonth() - 1, 1);
                 }
             } else {
-                dataPartenza = new Date(anno, 0, 1); // Inizio anno
+                // RANGE ESTESO: 1 mese prima del mese corrente
+                dataPartenza = new Date(oggi.getFullYear(), oggi.getMonth() - 1, 1);
             }
             
             if (dataFine && dataFine !== 'ricorrente') {
@@ -119,51 +143,137 @@ const Utils = {
                     if (giornoF && meseF && !isNaN(giornoF) && !isNaN(meseF)) {
                         dataLimite = new Date(anno, meseF - 1, giornoF);
                     } else {
-                        console.warn(`⚠️ Data fine non valida per ${comune}: ${dataFine}`);
-                        dataLimite = new Date(anno, 11, 31);
+                        Logger.warning(`⚠️ Data fine non valida per ${comune}: ${dataFine}`);
+                        // RANGE ESTESO: 1 mese dopo il mese corrente
+                        dataLimite = new Date(oggi.getFullYear(), oggi.getMonth() + 2, 0);
                     }
                 } catch (error) {
-                    console.warn(`⚠️ Errore parsing data fine per ${comune}: ${dataFine}`, error);
-                    dataLimite = new Date(anno, 11, 31);
+                    Logger.warning(`⚠️ Errore parsing data fine per ${comune}: ${dataFine}`, error);
+                    // RANGE ESTESO: 1 mese dopo il mese corrente
+                    dataLimite = new Date(oggi.getFullYear(), oggi.getMonth() + 2, 0);
                 }
             } else {
-                dataLimite = new Date(anno, 11, 31); // Fine anno
+                // RANGE ESTESO: 1 mese dopo il mese corrente
+                dataLimite = new Date(oggi.getFullYear(), oggi.getMonth() + 2, 0);
             }
         }
         
         // Verifica che le date siano valide
         if (!dataPartenza || isNaN(dataPartenza.getTime())) {
-            console.warn(`⚠️ Data partenza non valida per ${comune}, uso inizio anno`);
+            Logger.warning(`⚠️ Data partenza non valida per ${comune}, uso inizio anno`);
             dataPartenza = new Date(anno, 0, 1);
         }
         
         if (!dataLimite || isNaN(dataLimite.getTime())) {
-            console.warn(`⚠️ Data limite non valida per ${comune}, uso fine anno`);
+            Logger.warning(`⚠️ Data limite non valida per ${comune}, uso fine anno`);
             dataLimite = new Date(anno, 11, 31);
         }
         
-        console.log(`📅 Periodo: da ${dataPartenza.toLocaleDateString()} a ${dataLimite.toLocaleDateString()}`);
-        console.log(`📅 Tipo ricorrenza: "${giornoRicorrente}" per ${comune}`);
+        Logger.debug(`📅 Periodo: da ${dataPartenza.toLocaleDateString()} a ${dataLimite.toLocaleDateString()}`);
+        Logger.debug(`📅 Tipo ricorrenza: "${giornoRicorrente}" per ${comune}`);
         
-        // Analizza il giorno ricorrente e genera le date
-        const dateGenerate = this.parseGiornoRicorrente(giornoRicorrente, dataPartenza, dataLimite);
+        // CLASSIFICAZIONE INTELLIGENTE del tipo di ricorrenza
+        const dateGenerate = this.classificaERisolveRicorrenza(giornoRicorrente, dataPartenza, dataLimite, comune);
         
-        console.log(`📊 Generate ${dateGenerate.length} date per ${comune}:`, 
+        Logger.debug(`📊 Generate ${dateGenerate.length} date per ${comune}:`, 
             dateGenerate.length > 5 ? 
                 [...dateGenerate.slice(0, 3).map(d => d.toLocaleDateString()), '...', ...dateGenerate.slice(-2).map(d => d.toLocaleDateString())] : 
                 dateGenerate.map(d => d.toLocaleDateString())
         );
         
         // Fix timezone: usa formato locale invece di UTC
-        return dateGenerate.map(d => {
+        const risultato = dateGenerate.map(d => {
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         });
+        
+        // Salva in cache per riuso
+        this._dateCache.set(cacheKey, risultato);
+        return risultato;
     },
     
-    // Nuova funzione per interpretare il "giorno ricorrente"
+    // FUNZIONE INTELLIGENTE che classifica e risolve TUTTI i tipi di ricorrenza
+    classificaERisolveRicorrenza(giornoRicorrente, dataInizio, dataFine, comune) {
+        const giorno = giornoRicorrente.toLowerCase().trim();
+        Logger.debug(`🔍 Classificazione ricorrenza per ${comune}: "${giorno}"`);
+        
+        // CASO 1: GIORNI SETTIMANALI SEMPLICI (es: "Venerdì", "Mercoledì")
+        const giorniSettimana = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
+        const giornoSettimanale = giorniSettimana.findIndex(g => giorno === g);
+        if (giornoSettimanale !== -1) {
+            Logger.debug(`📅 SETTIMANALE: "${giorno}" → ogni ${giorno}`);
+            return this.generaDateSettimanali(giornoSettimanale, dataInizio, dataFine);
+        }
+        
+        // CASO 2: GIORNI MENSILI ORDINALI SINGOLI (es: "1^ Domenica", "2^ Sabato")
+        const ordinaleSingoloMatch = giorno.match(/^(\d+)[°^]\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)$/);
+        if (ordinaleSingoloMatch) {
+            const ordinale = parseInt(ordinaleSingoloMatch[1]);
+            const giornoDellaSettimana = giorniSettimana.indexOf(ordinaleSingoloMatch[2]);
+            Logger.debug(`📅 MENSILE SINGOLO: ${ordinale}° ${ordinaleSingoloMatch[2]} di ogni mese`);
+            return this.generaDateMensili(ordinale, giornoDellaSettimana, dataInizio, dataFine);
+        }
+        
+        // CASO 3: GIORNI MENSILI ORDINALI MULTIPLI (es: "2^ e 4^ giovedì", "1^ e 3^ giovedì")
+        const ordinaliMultipliMatch = giorno.match(/^(\d+)[°^]\s*e\s*(\d+)[°^]\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)$/);
+        if (ordinaliMultipliMatch) {
+            const ordinale1 = parseInt(ordinaliMultipliMatch[1]);
+            const ordinale2 = parseInt(ordinaliMultipliMatch[2]);
+            const giornoDellaSettimana = giorniSettimana.indexOf(ordinaliMultipliMatch[3]);
+            Logger.debug(`📅 MENSILE MULTIPLO: ${ordinale1}° e ${ordinale2}° ${ordinaliMultipliMatch[3]} di ogni mese`);
+            
+            const date1 = this.generaDateMensili(ordinale1, giornoDellaSettimana, dataInizio, dataFine);
+            const date2 = this.generaDateMensili(ordinale2, giornoDellaSettimana, dataInizio, dataFine);
+            return [...date1, ...date2].sort((a, b) => new Date(a) - new Date(b));
+        }
+        
+        // CASO 4: GIORNI MENSILI MISTI (es: "1^ Sabato e 1^ Domenica")
+        const mistiMatch = giorno.match(/^(\d+)[°^]\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)\s*e\s*(\d+)[°^]\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)$/);
+        if (mistiMatch) {
+            const ordinale1 = parseInt(mistiMatch[1]);
+            const giorno1 = giorniSettimana.indexOf(mistiMatch[2]);
+            const ordinale2 = parseInt(mistiMatch[3]);
+            const giorno2 = giorniSettimana.indexOf(mistiMatch[4]);
+            
+            Logger.debug(`📅 MENSILE MISTO: ${ordinale1}° ${mistiMatch[2]} e ${ordinale2}° ${mistiMatch[4]} di ogni mese`);
+            
+            const date1 = this.generaDateMensili(ordinale1, giorno1, dataInizio, dataFine);
+            const date2 = this.generaDateMensili(ordinale2, giorno2, dataInizio, dataFine);
+            return [...date1, ...date2].sort((a, b) => new Date(a) - new Date(b));
+        }
+        
+        // CASO 5: PRIMA/ULTIMA (es: "prima domenica", "ultima domenica")
+        const primaMatch = giorno.match(/^prima\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)$/);
+        const ultimaMatch = giorno.match(/^ultima?\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)$/);
+        
+        if (primaMatch) {
+            const giornoDellaSettimana = giorniSettimana.indexOf(primaMatch[1]);
+            Logger.debug(`📅 MENSILE PRIMA: prima ${primaMatch[1]} di ogni mese`);
+            return this.generaDateMensili(1, giornoDellaSettimana, dataInizio, dataFine);
+        }
+        
+        if (ultimaMatch) {
+            const giornoDellaSettimana = giorniSettimana.indexOf(ultimaMatch[1]);
+            Logger.debug(`📅 MENSILE ULTIMA: ultima ${ultimaMatch[1]} di ogni mese`);
+            return this.generaDateMensili(-1, giornoDellaSettimana, dataInizio, dataFine);
+        }
+        
+        // CASO 6: TUTTE LE (es: "tutte le domeniche")
+        const tutteMatch = giorno.match(/^tutte le\s*(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato)$/);
+        if (tutteMatch) {
+            const giornoDellaSettimana = giorniSettimana.indexOf(tutteMatch[1]);
+            Logger.debug(`📅 SETTIMANALE TUTTE: tutte le ${tutteMatch[1]}`);
+            return this.generaDateSettimanali(giornoDellaSettimana, dataInizio, dataFine);
+        }
+        
+        // CASO 7: FORMATO NON RICONOSCIUTO
+        Logger.warning(`⚠️ Formato ricorrenza non riconosciuto per ${comune}: "${giornoRicorrente}"`);
+        return [];
+    },
+    
+    // Funzione originale mantenuta per compatibilità
     parseGiornoRicorrente(giornoRicorrente, dataInizio, dataFine) {
         const giorno = giornoRicorrente.toLowerCase().trim();
         const date = [];
@@ -224,32 +334,45 @@ const Utils = {
         return [];
     },
     
-    // Genera date settimanali
+    // Genera date settimanali (migliorato per coprire tutto l'anno)
     generaDateSettimanali(giornoSettimana, dataInizio, dataFine) {
         const date = [];
-        let data = new Date(dataInizio);
+        
+        // Usa il range specificato se disponibile, altrimenti RANGE ESTESO (mese precedente + corrente + successivo)
+        const oggi = new Date();
+        const dataPartenza = dataInizio || new Date(oggi.getFullYear(), oggi.getMonth() - 1, 1);
+        const dataFinale = dataFine || new Date(oggi.getFullYear(), oggi.getMonth() + 2, 0);
+        
+        Logger.debug(`📅 Generazione settimanale: ogni ${['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'][giornoSettimana]} da ${dataPartenza.toLocaleDateString()} a ${dataFinale.toLocaleDateString()}`);
         
         // Trova il primo giorno della settimana nel periodo
-        while (data.getDay() !== giornoSettimana && data <= dataFine) {
+        let data = new Date(dataPartenza);
+        while (data.getDay() !== giornoSettimana) {
             data.setDate(data.getDate() + 1);
         }
         
-        // Aggiungi tutte le occorrenze settimanali
-        while (data <= dataFine) {
-            date.push(new Date(data));
+        // Aggiungi tutte le occorrenze settimanali per l'intero periodo
+        while (data <= dataFinale) {
+            // Include date passate nel range esteso (per mese corrente e precedente)
+            if (data >= dataPartenza && data <= dataFinale) {
+                date.push(new Date(data));
+            }
             data.setDate(data.getDate() + 7);
         }
         
+        Logger.debug(`📅 Date settimanali generate: ${date.length} per il periodo`);
         return date;
     },
     
-    // Genera date mensili (1°, 2°, 3°, ultimo)
+    // Genera date mensili (1°, 2°, 3°, ultimo) - MIGLIORATA
     generaDateMensili(ordinale, giornoSettimana, dataInizio, dataFine) {
         const date = [];
         
         // Itera su ogni mese nel periodo
         let data = new Date(dataInizio.getFullYear(), dataInizio.getMonth(), 1);
         const fineData = new Date(dataFine.getFullYear(), dataFine.getMonth(), 1);
+        
+        Logger.debug(`📅 Generazione mensile: ${ordinale === -1 ? 'ultimo' : ordinale + '°'} ${['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'][giornoSettimana]}`);
         
         while (data <= fineData) {
             let giornoTarget;
@@ -275,7 +398,7 @@ const Utils = {
                 }
             }
             
-            // Aggiungi solo se è nel range
+            // Aggiungi solo se è nel range (include anche date passate per mese corrente e precedente)
             if (giornoTarget >= dataInizio && giornoTarget <= dataFine) {
                 date.push(new Date(giornoTarget));
             }
@@ -284,47 +407,116 @@ const Utils = {
             data.setMonth(data.getMonth() + 1);
         }
         
+        Logger.debug(`📅 Date mensili generate: ${date.length} per il periodo`);
         return date;
     },
     
-    // Genera data per fiere
-    generaDataFiera(dataInizio, anno) {
+    // Genera date per mercatini con RANGE FORZATO di 3 mesi (precedente + corrente + successivo)
+    generaDateMercatinoRangeEsteso(dati, annoCorrente, meseCorrente) {
+        const { dataInizio, dataFine, giornoRicorrente, comune } = dati;
+        
+        // Cache key per evitare ricalcoli
+        const cacheKey = `${comune}_${giornoRicorrente}_${dataInizio}_${dataFine}_range_esteso_${annoCorrente}_${meseCorrente}`;
+        if (this._dateCache.has(cacheKey)) {
+            return this._dateCache.get(cacheKey);
+        }
+        
+        // Verifica che abbiamo il giorno ricorrente
+        if (!giornoRicorrente) {
+            Logger.debug('⚠️ Nessun giorno ricorrente specificato');
+            return [];
+        }
+        
+        // FORZA RANGE ESTESO: 3 mesi (precedente + corrente + successivo)
+        const dataPartenza = new Date(annoCorrente, meseCorrente - 1, 1);  // 1 mese prima
+        const dataLimite = new Date(annoCorrente, meseCorrente + 2, 0);     // 1 mese dopo
+        
+        Logger.debug(`📅 RANGE FORZATO per ${comune}: da ${dataPartenza.toLocaleDateString()} a ${dataLimite.toLocaleDateString()}`);
+        Logger.debug(`📅 Tipo ricorrenza: "${giornoRicorrente}" per ${comune}`);
+        
+        // CLASSIFICAZIONE INTELLIGENTE del tipo di ricorrenza
+        const dateGenerate = this.classificaERisolveRicorrenza(giornoRicorrente, dataPartenza, dataLimite, comune);
+        
+        Logger.debug(`📊 Generate ${dateGenerate.length} date per ${comune}:`, 
+            dateGenerate.length > 5 ? 
+                [...dateGenerate.slice(0, 3).map(d => d.toLocaleDateString()), '...', ...dateGenerate.slice(-2).map(d => d.toLocaleDateString())] : 
+                dateGenerate.map(d => d.toLocaleDateString())
+        );
+        
+        // Fix timezone: usa formato locale invece di UTC
+        const risultato = dateGenerate.map(d => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        });
+        
+        // Salva in cache per riuso
+        this._dateCache.set(cacheKey, risultato);
+        return risultato;
+    },
+    
+    // Genera data per fiere (con supporto per range di date)
+    generaDataFiera(dataInizio, dataFine, anno) {
         if (!dataInizio) return null;
         
         // Pulisci i dati
-        const dataPulita = dataInizio.toString().trim().replace(/\r/g, '');
+        const dataInizioPulita = dataInizio.toString().trim().replace(/\r/g, '');
+        const dataFinePulita = dataFine ? dataFine.toString().trim().replace(/\r/g, '') : null;
+        
+        const risultati = [];
         
         // Gestisci formato DD/MM
-        if (dataPulita.includes('/')) {
-            const parti = dataPulita.split('/');
+        if (dataInizioPulita.includes('/')) {
+            const parti = dataInizioPulita.split('/');
             if (parti.length >= 2) {
                 const [giorno, mese] = parti;
                 if (!isNaN(giorno) && !isNaN(mese)) {
-                    const data = new Date(anno, parseInt(mese) - 1, parseInt(giorno));
-                    if (data >= new Date()) {
-                        const year = data.getFullYear();
-                        const month = String(data.getMonth() + 1).padStart(2, '0');
-                        const day = String(data.getDate()).padStart(2, '0');
-                        return `${year}-${month}-${day}`;
+                    const dataStart = new Date(anno, parseInt(mese) - 1, parseInt(giorno));
+                    
+                    // Se c'è una data fine, genera tutte le date nel range
+                    if (dataFinePulita && dataFinePulita.includes('/')) {
+                        const partiFine = dataFinePulita.split('/');
+                        if (partiFine.length >= 2) {
+                            const [giornoFine, meseFine] = partiFine;
+                            if (!isNaN(giornoFine) && !isNaN(meseFine)) {
+                                const dataEnd = new Date(anno, parseInt(meseFine) - 1, parseInt(giornoFine));
+                                
+                                // Genera tutte le date nel range (include anche date passate)
+                                let currentDate = new Date(dataStart);
+                                while (currentDate <= dataEnd) {
+                                    const year = currentDate.getFullYear();
+                                    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                                    const day = String(currentDate.getDate()).padStart(2, '0');
+                                    risultati.push(`${year}-${month}-${day}`);
+                                    currentDate.setDate(currentDate.getDate() + 1);
+                                }
+                                return risultati;
+                            }
+                        }
                     }
+                    
+                    // Singola data (include anche date passate)
+                    const year = dataStart.getFullYear();
+                    const month = String(dataStart.getMonth() + 1).padStart(2, '0');
+                    const day = String(dataStart.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
                 }
             }
         }
         
         // Gestisci formato DD.MM.YYYY
-        if (dataPulita.includes('.')) {
-            const parti = dataPulita.split('.');
+        if (dataInizioPulita.includes('.')) {
+            const parti = dataInizioPulita.split('.');
             if (parti.length >= 3) {
                 const [giorno, mese, annoData] = parti;
                 if (!isNaN(giorno) && !isNaN(mese)) {
                     const annoUsato = annoData && !isNaN(annoData) ? parseInt(annoData) : anno;
                     const data = new Date(annoUsato, parseInt(mese) - 1, parseInt(giorno));
-                    if (data >= new Date()) {
-                        const year = data.getFullYear();
-                        const month = String(data.getMonth() + 1).padStart(2, '0');
-                        const day = String(data.getDate()).padStart(2, '0');
-                        return `${year}-${month}-${day}`;
-                    }
+                    const year = data.getFullYear();
+                    const month = String(data.getMonth() + 1).padStart(2, '0');
+                    const day = String(data.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
                 }
             }
         }
@@ -336,20 +528,22 @@ const Utils = {
         };
         
         for (let [meseNome, meseNum] of Object.entries(mesi)) {
-            if (dataPulita.toLowerCase().includes(meseNome)) {
+            if (dataInizioPulita.toLowerCase().includes(meseNome)) {
                 const data = new Date(anno, meseNum, 1);
-                if (data >= new Date()) {
-                    return Utils.dateToLocalISOString(data);
-                }
+                return Utils.dateToLocalISOString(data);
             }
         }
         
         return null;
     },
     
-    // Pulisci e valida i dati - AGGIORNATO per nuova struttura Google Sheet
+    // Pulisci e valida i dati - OTTIMIZZATO con cache
     validaDati(item) {
-        console.log('🔍 Validazione dati item:', item);
+        // Cache per validazione
+        const itemKey = JSON.stringify(item);
+        if (this._validationCache.has(itemKey)) {
+            return this._validationCache.get(itemKey);
+        }
         
         // Mappatura colonne per la nuova struttura
         const colonne = Object.keys(item);
@@ -380,17 +574,8 @@ const Utils = {
                 settori: null
             };
             
-            console.log('✅ Dati validati (da indici):', dati);
-            
-            // Debug specifico per Imperia nel parsing
-            if (dati.comune && dati.comune.toLowerCase().includes('imperia')) {
-                console.log('🔍 IMPERIA RILEVATA NEL PARSING:', {
-                    comune: dati.comune,
-                    giornoRicorrente: dati.giornoRicorrente,
-                    valoriRaw: valori
-                });
-            }
-            
+            // Salva in cache
+            this._validationCache.set(itemKey, dati);
             return dati;
         }
         
@@ -412,7 +597,8 @@ const Utils = {
             settori: this.estraiValore(item, ['Settori merceologici', 'settori'])
         };
         
-        console.log('✅ Dati validati (da nomi):', dati);
+        // Salva in cache
+        this._validationCache.set(itemKey, dati);
         return dati;
     },
     
@@ -455,6 +641,7 @@ console.log('📅 Definizione CalendarManager...');
 // Gestione del calendario FullCalendar
 const CalendarManager = {
     calendar: null,
+    currentRange: null, // Range attuale della vista
     
     // Inizializza il calendario
     init() {
@@ -480,6 +667,7 @@ const CalendarManager = {
             this.calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: CONFIG.CALENDAR.INITIAL_VIEW,
             locale: CONFIG.CALENDAR.LOCALE,
+            firstDay: 1, // Lunedì come primo giorno della settimana
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
@@ -495,15 +683,50 @@ const CalendarManager = {
             eventClick: (info) => this.onEventClick(info.event),
             dateClick: (info) => this.onDayClick(info.dateStr),
             eventClassNames: (arg) => this.getEventClassNames(arg),
-            dayMaxEvents: 4, // Massimo 4 eventi visibili per giorno
-            moreLinkClick: this.onMoreLinkClick.bind(this),
+            dayMaxEvents: 3, // Ridotto per evitare sovrapposizioni
+            moreLinkClick: function(info) {
+                // Previeni COMPLETAMENTE il popover/dropdown
+                if (info.jsEvent) {
+                    info.jsEvent.preventDefault();
+                    info.jsEvent.stopImmediatePropagation();
+                    info.jsEvent.stopPropagation();
+                }
+                
+                // Rimuovi eventuali popover esistenti
+                const popovers = document.querySelectorAll('.fc-popover');
+                popovers.forEach(p => p.remove());
+                
+                const infoDate = info.date;
+                const year = infoDate.getFullYear();
+                const month = String(infoDate.getMonth() + 1).padStart(2, '0');
+                const day = String(infoDate.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${day}`;
+                
+                // Apri immediatamente il modal personalizzato
+                setTimeout(() => {
+                    EventManager.mostraEventiGiorno(dateStr);
+                }, 0);
+                
+                return 'prevent'; // Forza prevenzione del popover FullCalendar
+            },
             moreLinkText: function(num) {
-                return `+${num} altri`;
+                return `+${num} eventi`;
             },
             eventTimeFormat: {
                 hour: '2-digit',
                 minute: '2-digit',
                 meridiem: false
+            },
+            
+            // CALLBACK per cambio vista/date (SEMPLIFICATO)
+            datesSet: (info) => {
+                Logger.info(`📅 Vista cambiata: ${info.view.type}`);
+                this.currentRange = {
+                    start: info.start,
+                    end: info.end,
+                    view: info.view.type
+                };
+                // Non ricaricare automaticamente - sarà gestito dal caricamento normale
             }
         });
         
@@ -540,16 +763,7 @@ const CalendarManager = {
         EventManager.mostraEventiGiorno(data);
     },
     
-    // Gestisce il click su "+N altri"
-    onMoreLinkClick(info) {
-        Logger.debug('Click su più eventi:', info.date);
-        const infoDate = info.date;
-        const year = infoDate.getFullYear();
-        const month = String(infoDate.getMonth() + 1).padStart(2, '0');
-        const day = String(infoDate.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
-        EventManager.mostraEventiGiorno(dateStr);
-    },
+
     
     // Restituisce le classi CSS per gli eventi
     getEventClassNames(arg) {
@@ -570,10 +784,24 @@ const CalendarManager = {
         }
     },
     
-    // Aggiunge un evento
+    // Nota: loadEventsForCurrentRange rimossa - ora usiamo caricamento diretto e completo
+    
+    // Aggiunge un evento con controllo duplicati
     addEvent(evento) {
         if (this.calendar) {
             try {
+                // Controlla se l'evento esiste già
+                const eventiEsistenti = this.calendar.getEvents();
+                const eventoDuplicato = eventiEsistenti.find(e => 
+                    e.title === evento.title && 
+                    e.startStr === evento.start
+                );
+                
+                if (eventoDuplicato) {
+                    Logger.debug(`⚠️ Evento duplicato ignorato: ${evento.title} ${evento.start}`);
+                    return false;
+                }
+                
                 this.calendar.addEvent(evento);
                 return true;
             } catch (error) {
@@ -584,21 +812,34 @@ const CalendarManager = {
         return false;
     },
     
-    // Aggiunge più eventi
+    // Aggiunge più eventi con DEDUPLICAZIONE
     addEvents(eventi) {
         if (this.calendar && eventi.length > 0) {
-            let successi = 0;
+            // DEDUPLICAZIONE: Rimuovi eventi duplicati
+            const eventiUnici = [];
+            const eventiVisti = new Set();
+            
             eventi.forEach(evento => {
+                // Crea una chiave unica basata su titolo + data
+                const chiaveUnica = `${evento.title}_${evento.start}`;
+                if (!eventiVisti.has(chiaveUnica)) {
+                    eventiVisti.add(chiaveUnica);
+                    eventiUnici.push(evento);
+                }
+            });
+            
+            Logger.info(`🔄 Deduplicazione: ${eventi.length} → ${eventiUnici.length} eventi unici`);
+            
+            let successi = 0;
+            eventiUnici.forEach(evento => {
                 if (this.addEvent(evento)) {
                     successi++;
                 }
             });
-            Logger.success(`${successi}/${eventi.length} eventi aggiunti con successo`);
+            Logger.success(`${successi}/${eventiUnici.length} eventi aggiunti con successo`);
             
-            // Forza refresh del calendario
-            setTimeout(() => {
-                this.calendar.render();
-            }, CONFIG.TIMEOUTS.RENDER_DELAY);
+            // Render immediato per performance
+            this.calendar.render();
         }
     },
     
@@ -660,13 +901,71 @@ const DataLoader = {
     mercatini: [],
     fiere: [],
     
+    // Funzione JSONP per bypassare CORS
+    async caricaDatiConJSONP() {
+        return new Promise((resolve, reject) => {
+            // URL per JSONP
+            const jsonpUrl = 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/gviz/tq?tqx=out:json&sheet=Foglio1';
+            
+            const script = document.createElement('script');
+            const callbackName = 'jsonpCallback_' + Date.now();
+            
+            // Crea callback globale
+            window[callbackName] = function(data) {
+                // Pulisci
+                document.head.removeChild(script);
+                delete window[callbackName];
+                
+                try {
+                    // Estrai i dati dalla risposta Google
+                    const rows = data.table.rows;
+                    const cols = data.table.cols;
+                    
+                    // Converti in formato CSV-like
+                    const csvData = [];
+                    
+                    // Header
+                    const header = cols.map(col => col.label || col.id);
+                    csvData.push(header);
+                    
+                    // Righe dati
+                    rows.forEach(row => {
+                        const rowData = row.c.map(cell => {
+                            if (!cell || cell.v === null || cell.v === undefined) return '';
+                            return String(cell.v);
+                        });
+                        csvData.push(rowData);
+                    });
+                    
+                    Logger.success(`✅ Dati caricati via JSONP: ${csvData.length} righe`);
+                    resolve(csvData);
+                    
+                } catch (error) {
+                    Logger.error('Errore parsing JSONP:', error);
+                    reject(error);
+                }
+            };
+            
+            // Gestisci errore
+            script.onerror = function() {
+                document.head.removeChild(script);
+                delete window[callbackName];
+                reject(new Error('Errore caricamento JSONP'));
+            };
+            
+            // Aggiungi script
+            script.src = jsonpUrl + '&tqx=out:json;responseHandler:' + callbackName;
+            document.head.appendChild(script);
+        });
+    },
+    
     // Carica tutti i dati
     async caricaDati() {
         Logger.info('🚀 Avvio caricamento dati...');
         
         try {
-            // Carica tutti gli eventi dal singolo Google Sheet
-            await this.caricaMercatini();
+            // Usa il nuovo metodo semplificato
+            await this.caricaMercatiniSemplice();
             
             Logger.success('✅ Tutti i dati caricati');
             
@@ -696,27 +995,136 @@ const DataLoader = {
         }
     },
     
+    // Metodo semplificato per caricare dati (funziona su localhost e Netlify)
+    async caricaMercatiniSemplice() {
+        Logger.info('Caricamento eventi da Google Sheet (metodo semplificato)...');
+        
+        const urls = [CONFIG.GOOGLE_SHEETS_URL, CONFIG.GOOGLE_SHEETS_FALLBACK];
+        
+
+        
+        for (const url of urls) {
+            try {
+                // Aggiungi timestamp per forzare bypass cache
+                const urlWithTimestamp = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                Logger.info(`📡 Tentativo con URL: ${urlWithTimestamp}`);
+                
+                // TIMEOUT ULTRA-CORTO
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 secondi MAX
+                
+                const response = await fetch(urlWithTimestamp, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'text/csv'
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.text();
+                Logger.info(`📊 Dati ricevuti: ${data.length} caratteri`);
+                
+                if (data.length < 50) {
+                    throw new Error('Dati troppo piccoli, probabilmente errore');
+                }
+                
+                // Parse con PapaParse
+                return new Promise((resolve, reject) => {
+                    Papa.parse(data, {
+                        header: true,
+                        delimiter: ',',
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            Logger.success(`✅ Parsing completato: ${results.data.length} righe`);
+                            this.processResults(results);
+                            resolve();
+                        },
+                        error: (error) => {
+                            Logger.error('Errore parsing CSV:', error);
+                            reject(error);
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                Logger.info(`⚠️ Fallito con ${url}: ${error.message}`);
+                if (url === urls[urls.length - 1]) {
+                    // È l'ultimo URL, rilancia l'errore
+                    throw new Error(`Impossibile caricare dati da Google Sheets: ${error.message}`);
+                }
+                // Altrimenti continua con il prossimo URL
+            }
+        }
+    },
+    
+    // Carica dati usando JSONP (evita problemi CORS)
+    async caricaMercatiniConJSONP() {
+        Logger.info('Caricamento eventi da Google Sheet via JSONP...');
+        
+        try {
+            const csvData = await this.caricaDatiConJSONP();
+            
+            // Simula il formato Papa Parse
+            const results = {
+                data: []
+            };
+            
+            // Converte da array a oggetti con header come chiavi
+            if (csvData.length > 1) {
+                const headers = csvData[0];
+                for (let i = 1; i < csvData.length; i++) {
+                    const row = csvData[i];
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = row[index] || '';
+                    });
+                    results.data.push(obj);
+                }
+            }
+            
+            Logger.success(`✅ Parsing eventi completato via JSONP: ${results.data.length} righe`);
+            this.processResults(results);
+            
+        } catch (error) {
+            Logger.error(`Errore caricamento mercatini via JSONP: ${error.message}`);
+            throw error;
+        }
+    },
+    
     // Carica tutti gli eventi da Google Sheets (mercatini e fiere)
     async caricaMercatini() {
         Logger.info('Caricamento eventi da Google Sheet...');
         
         try {
-            // Aggiungi timestamp per evitare cache del browser
-            const timestamp = new Date().getTime();
-            const urlConCache = `${CONFIG.GOOGLE_SHEETS_URL}&_t=${timestamp}`;
+            // Prova prima con export URL semplice
+            let urlConCache = CONFIG.GOOGLE_SHEETS_URL;
             
             Logger.info(`📡 Richiesta dati: ${urlConCache}`);
-            const response = await fetch(urlConCache, {
-                method: 'GET',
-                cache: 'no-cache',
-                headers: {
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
-            });
             
-            if (!response.ok) {
+            let response;
+            try {
+                response = await fetch(urlConCache, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+            } catch (corsError) {
+                Logger.info('❌ Errore CORS con export URL, provo con gviz/tq...');
+                // Fallback al vecchio URL
+                urlConCache = 'https://docs.google.com/spreadsheets/d/1BCCgGLKYZOz3SdWZx199kbp1PV387N_qzM3oTuRVESU/gviz/tq?tqx=out:csv&sheet=Foglio1';
+                response = await fetch(urlConCache, {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+            }
+            
+            if (!response.ok && response.status !== 0) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
@@ -781,37 +1189,17 @@ const DataLoader = {
         }
     },
     
-    // Processa i risultati del parsing
+    // Processa i risultati del parsing (CARICAMENTO PROGRESSIVO)
     processResults(results) {
-        // Filtra e processa tutti gli eventi
+        // Filtra e processa TUTTI gli eventi
         this.mercatini = results.data.filter((item, index) => {
             const dati = Utils.validaDati(item);
-            console.log(`🔍 Processando item ${index + 1}:`, dati);
-            
-            // Per Imperia, aggiungi debug specifico
-            if (dati.comune && dati.comune.toLowerCase().includes('imperia')) {
-                console.log('🎯 IMPERIA TROVATA:', {
-                    comune: dati.comune,
-                    tipologia: dati.tipologia,
-                    dataInizio: dati.dataInizio,
-                    dataFine: dati.dataFine,
-                    giornoRicorrente: dati.giornoRicorrente,
-                    oggettoCompleto: dati
-                });
-            }
             
             // Verifica che abbia almeno comune e qualche informazione temporale
             const hasRequiredFields = dati.comune && 
                 (dati.tipologia || dati.giornoRicorrente || dati.dataInizio || dati.dataFine);
             
-            if (!hasRequiredFields) {
-                console.log('⚠️ Mancano campi richiesti per:', dati.comune, dati);
-                return false;
-            }
-            
-            // Tutti gli eventi con info minime sono validi
-            console.log('✅ Evento valido:', dati.comune, '-', dati.tipologia || 'NO TIPOLOGIA');
-            return true;
+            return hasRequiredFields;
         });
         
         Logger.success(`Eventi validi: ${this.mercatini.length}`);
@@ -870,50 +1258,145 @@ const DataLoader = {
         }
     },
     
-    // Aggiorna calendario con tutti gli eventi
+    // Aggiorna calendario con TUTTI gli eventi (SEMPLIFICATO E OTTIMIZZATO)
     aggiornaCalendario() {
-        Logger.info('Aggiornamento calendario...');
+        Logger.info('🛒 Aggiornamento calendario con tutti gli eventi...');
         
         // Rimuovi eventi esistenti
         CalendarManager.clearEvents();
         
-        let eventiAggiunti = 0;
+        // Pulisci cache solo se necessario
+        Utils.clearCache(false);
+        
         const oggi = new Date();
         const anno = oggi.getFullYear();
         
-        // Aggiungi mercatini
-        Logger.info('🛒 Aggiunta mercatini al calendario...');
-        this.mercatini.forEach((mercatino, index) => {
-            const dati = Utils.validaDati(mercatino);
-            console.log(`🔍 Processando evento calendario ${index + 1}:`, dati);
-            
-            // Debug specifico per Imperia
-            if (dati.comune && dati.comune.toLowerCase().includes('imperia')) {
-                console.log('🎯 PROCESSANDO IMPERIA nel calendario:', {
-                    comune: dati.comune,
-                    tipologia: dati.tipologia,
-                    dataInizio: dati.dataInizio,
-                    dataFine: dati.dataFine,
-                    giornoRicorrente: dati.giornoRicorrente,
-                    valoriGrezzi: Object.values(mercatino)
-                });
+        // CARICAMENTO DIRETTO: Genera TUTTI gli eventi necessari in una volta
+        const tuttijEventi = [];
+        let eventiAggiunti = 0;
+        
+        // Processa TUTTI i mercatini con range esteso (6 mesi avanti)
+        this.mercatini.forEach((mercatino) => {
+            this.processaSingoloEventoEsteso(mercatino, tuttijEventi, anno);
+        });
+        
+        // BATCH ADD: Aggiungi tutti gli eventi in una volta
+        if (tuttijEventi.length > 0) {
+            CalendarManager.addEvents(tuttijEventi);
+            eventiAggiunti = tuttijEventi.length;
+        }
+        
+        Logger.success(`✅ ${eventiAggiunti} eventi caricati! Database: ${this.mercatini.length} mercatini`);
+    },
+    
+    // Processa un singolo evento con range ESTESO (SENZA DUPLICATI)
+    processaSingoloEventoEsteso(mercatino, eventiArray, anno) {
+        const dati = Utils.validaDati(mercatino);
+        
+        // Debug per eventi problematici
+        if (dati.comune && dati.comune.toLowerCase().includes('camporosso')) {
+            Logger.info(`🔍 Camporosso: "${dati.evento || 'Mercatino'}" | Date: ${dati.dataInizio || 'vuote'} | Ricorrenza: "${dati.giornoRicorrente || 'nessuna'}"`);
+        }
+        
+        let date = null;
+        
+        // PRIORITÀ: Se ha date specifiche, USA SEMPRE quelle (anche se ha giorno ricorrente)
+        if (dati.dataInizio) {
+            date = Utils.generaDataFiera(dati.dataInizio, dati.dataFine, anno);
+            if (date && !Array.isArray(date)) {
+                date = [date];
             }
+            
+            // Se ha ANCHE un giorno ricorrente e le date sono un range, filtra solo per quel giorno
+            if (date && date.length > 1 && dati.giornoRicorrente && dati.giornoRicorrente.toLowerCase() !== 'ricorrente') {
+                const giorni = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
+                const giornoSettimana = giorni.indexOf(dati.giornoRicorrente.toLowerCase().trim());
+                
+                if (giornoSettimana !== -1) {
+                    // Filtra solo le date che cadono nel giorno specificato
+                    date = date.filter(d => {
+                        const dataEvento = new Date(d);
+                        return dataEvento.getDay() === giornoSettimana;
+                    });
+                }
+            }
+        }
+        // SOLO se NON ha date specifiche, analizza il tipo di ricorrenza
+        else if (dati.giornoRicorrente && dati.giornoRicorrente.toLowerCase() !== 'ricorrente') {
+            // FORZA RANGE ESTESO: 3 mesi (precedente + corrente + successivo)
+            const oggi = new Date();
+            const annoCorrente = oggi.getFullYear();
+            const meseCorrente = oggi.getMonth();
+            
+            // Genera date per il range esteso
+            date = Utils.generaDateMercatinoRangeEsteso(dati, annoCorrente, meseCorrente);
+        }
+        // CASO SPECIALE: Eventi "ricorrenti" generici
+        else if (dati.giornoRicorrente && dati.giornoRicorrente.toLowerCase() === 'ricorrente' && dati.dataInizio) {
+            date = Utils.generaDataFiera(dati.dataInizio, dati.dataFine, anno);
+            if (date && !Array.isArray(date)) {
+                date = [date];
+            }
+        }
+        
+        // Debug per vedere le date generate
+        if (dati.comune && dati.comune.toLowerCase().includes('camporosso')) {
+            Logger.info(`📅 Camporosso "${dati.evento || 'Mercatino'}" → ${date ? date.length : 0} date generate`);
+            if (date && date.length > 0) {
+                Logger.info(`📋 Prime 3 date: ${date.slice(0, 3).join(', ')}`);
+            }
+        }
+        
+        // Genera eventi FullCalendar
+        if (date && date.length > 0) {
+            const isMercatino = dati.tipologia && dati.tipologia.toLowerCase().includes('mercatino');
+            const iconaEvento = isMercatino ? '🛒' : '🎪';
+            const coloreEvento = isMercatino ? CONFIG.COLORS.MERCATINO : CONFIG.COLORS.FIERA;
+            const tipoEvento = isMercatino ? 'mercatino' : 'fiera';
+            
+            const eventi = date.map((dataSingola, index) => ({
+                id: `${tipoEvento}_${dati.comune}_${dataSingola}_${index}`,
+                title: `${iconaEvento} ${dati.comune}`,
+                start: dataSingola,
+                end: dataSingola,
+                backgroundColor: coloreEvento,
+                borderColor: coloreEvento,
+                textColor: isMercatino ? 'white' : CONFIG.COLORS.FIERA_TEXT,
+                extendedProps: {
+                    tipo: tipoEvento,
+                    comune: dati.comune,
+                    tipologia: dati.tipologia || 'N/A',
+                    giornoRicorrente: dati.giornoRicorrente || 'N/A',
+                    orario: dati.orario || 'N/A',
+                    luogo: dati.luogo || 'N/A',
+                    organizzatore: dati.organizzatore || 'N/A',
+                    settori: dati.settori || 'N/A',
+                    dataInizio: dati.dataInizio || 'N/A',
+                    dataFine: dati.dataFine || 'N/A'
+                }
+            }));
+            
+            eventiArray.push(...eventi);
+        }
+    },
+    
+    // Nota: processaSingoloEventoPerRange rimossa - ora usiamo processaSingoloEventoEsteso
+    
+    // Processa un singolo evento (funzione originale mantenuta per compatibilità)
+    processaSingoloEvento(mercatino, eventiArray, anno) {
+            const dati = Utils.validaDati(mercatino);
             
             let date = null;
             
             // Usa la nuova logica basata su giornoRicorrente
             if (dati.giornoRicorrente) {
-                console.log(`📅 Generando date per ${dati.comune} con giorno: ${dati.giornoRicorrente}`);
                 date = Utils.generaDateMercatino(dati, anno, CONFIG.CALENDAR.MONTHS_TO_GENERATE);
-                console.log(`📊 Date generate per ${dati.comune}:`, date);
-            } else {
-                console.log(`⚠️ Nessun giorno ricorrente per ${dati.comune}`);
             }
             
-            // Se non funziona, prova con Data inizio
+            // Se non funziona, prova con Data inizio/fine per fiere
             if (!date && dati.dataInizio) {
-                date = Utils.generaDataFiera(dati.dataInizio, anno);
-                if (date) {
+                date = Utils.generaDataFiera(dati.dataInizio, dati.dataFine, anno);
+                if (date && !Array.isArray(date)) {
                     date = [date]; // Converti in array per compatibilità
                 }
             }
@@ -955,30 +1438,9 @@ const DataLoader = {
                     }
                 }));
                 
-                CalendarManager.addEvents(eventi);
-                eventiAggiunti += eventi.length;
+                // Aggiungi al singolo array passato
+                eventiArray.push(...eventi);
             }
-        });
-        
-        Logger.success(`Eventi aggiunti: ${eventiAggiunti} eventi totali`);
-        Logger.info(`Totale eventi nel calendario: ${CalendarManager.getEventCount()}`);
-        
-        // Forza refresh finale
-        CalendarManager.refresh();
-        
-        // Verifica finale
-        setTimeout(() => {
-            const totalEvents = CalendarManager.getEventCount();
-            console.log('🎯 Riepilogo finale caricamento:');
-            console.log(`- Eventi aggiunti: ${eventiAggiunti || 0}`);
-            console.log(`- Eventi totali nel calendario: ${totalEvents}`);
-            
-            if (totalEvents === 0) {
-                console.warn('⚠️ Nessun evento nel calendario! Verifica i dati.');
-            } else {
-                console.log('✅ Eventi caricati con successo nel calendario!');
-            }
-        }, 200);
     }
 };
 
@@ -1025,6 +1487,11 @@ const App = {
     // Carica dati
     async caricaDati() {
         Logger.info('🚀 Avvio caricamento dati...');
+        
+        // Pulisci cache solo se necessario (non sempre)
+        Utils.clearCache(false); // Non forzare, solo se vecchia
+        
+        console.log('🧹 Cache controllata');
         
         // Mostra indicatore di caricamento
         const loadingText = document.querySelector('.loading-text');
@@ -1281,9 +1748,16 @@ const EventManager = {
     
     // Mostra dettagli evento
     mostraDettagliEvento(evento) {
-        const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+        const modal = new bootstrap.Modal(document.getElementById('eventModal'), {
+            backdrop: true,
+            keyboard: true
+        });
         const title = document.getElementById('eventModalTitle');
         const body = document.getElementById('eventModalBody');
+        
+        // Assicura che questo modal sia sopra agli altri
+        const modalEl = document.getElementById('eventModal');
+        modalEl.style.zIndex = '2060'; // Più alto del modal giornaliero (1055)
         
         title.textContent = evento.title;
         
@@ -1349,7 +1823,10 @@ const EventManager = {
     
     // Mostra eventi del giorno
     mostraEventiGiorno(data) {
-        const modal = new bootstrap.Modal(document.getElementById('dailyModal'));
+        const modal = new bootstrap.Modal(document.getElementById('dailyModal'), {
+            backdrop: true,
+            keyboard: true
+        });
         const title = document.getElementById('dailyModalTitle');
         const body = document.getElementById('dailyModalBody');
         
@@ -1433,12 +1910,10 @@ const EventManager = {
     // Aggiorna eventi vicini
     aggiornaEventiVicini() {
         const container = document.getElementById('eventiVicini');
-        const eventi = CalendarManager.getEvents().filter(evento => 
-            evento.start >= new Date()
-        ).slice(0, 5);
+        const eventi = CalendarManager.getEvents().slice(0, 5); // Include tutti gli eventi (anche passati)
         
         if (eventi.length === 0) {
-            container.innerHTML = '<p class="text-muted">Nessun evento futuro trovato</p>';
+            container.innerHTML = '<p class="text-muted">Nessun evento trovato</p>';
         } else {
             let html = '';
             eventi.forEach(evento => {
@@ -1576,3 +2051,4 @@ console.log('- CalendarManager.init test:', typeof CalendarManager.init);
 console.log('- DataLoader.caricaDati test:', typeof DataLoader.caricaDati);
 console.log('- App.init test:', typeof App.init);
 console.log('- window.app test:', typeof window.app);
+
