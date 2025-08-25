@@ -1,0 +1,14 @@
+# Netlify Deploy Trigger
+# Questo file forza il redeploy su Netlify
+# Timestamp: 2025-08-25 18:48:00
+# Versione: 4.1.0 - Logica Intelligente Ricorrenze
+# Commit: 25fb30c
+
+# Modifiche implementate:
+# - Classificazione automatica ricorrenze
+# - Range esteso 3 mesi (precedente + corrente + successivo)
+# - Rimozione filtri temporali per date passate
+# - Performance ottimizzata per 3-4 secondi
+# - Supporto completo per pattern complessi
+
+# Trigger deploy automatico
